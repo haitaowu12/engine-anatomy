@@ -34,7 +34,7 @@ Limiting trials are deliberately different:
 
 ## Actual WebGL and interaction inspection
 
-The local application was exercised in the in-app Chromium browser. Its graphics context reported **ANGLE Metal Renderer: Apple M2 Pro**. Actual rendered scenes were inspected; this was not a source-only or software-render-only check.
+The local application was exercised in the in-app Chromium browser. Its graphics context reported **ANGLE Metal Renderer: Apple M2 Pro**. Actual rendered scenes were inspected; this was not a source-only or software-render-only check. A final public-host inspection found and corrected Retina canvas sizing: CSS dimensions now match the host while the drawing buffer retains the device pixel ratio. This prevents clipping caused by intrinsic canvas dimensions.
 
 Visible acceptance covered:
 
