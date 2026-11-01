@@ -1,5 +1,6 @@
 import {mkdir,cp,rm,writeFile,readFile,readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+await import('./catalog.mjs');
 await rm('dist',{recursive:true,force:true});await mkdir('dist/vendor',{recursive:true});
 const hash=createHash('sha256');
 for(const dir of ['public','src'])for(const file of (await readdir(dir)).sort())hash.update(await readFile(`${dir}/${file}`));

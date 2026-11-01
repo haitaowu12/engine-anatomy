@@ -1,19 +1,27 @@
 # Engine Anatomy
 
-An original interactive educational atlas of a generic free-turbine turboshaft: inspect the cutaway, select components and follow a load change through a simplified fuel-control loop.
+An original interactive engineering atlas of **three engine–airframe pairs**. Trace what turns what, select a sensor or actuator, then follow a guided transient through the same model.
 
-- **GitHub Pages:** https://haitaowu12.github.io/engine-anatomy/
-- **GPT Site (owner-private):** https://engine-anatomy.techiesea.chatgpt.site
+- [GitHub Pages — public](https://haitaowu12.github.io/engine-anatomy/)
+- [GPT Site — previous release](https://engine-anatomy.techiesea.chatgpt.site)
 
-## Explore
+| Pair | Mechanical and control story |
+|---|---|
+| Turboshaft / helicopter | Independent gas-generator and power shafts; reduction/freewheel context; main transmission, mast, main rotor and tail drive. Collective changes load; engine fuel governing recovers Np. |
+| Turboprop / propeller aircraft | Forward-returning independent power shaft, reduction and pitchable propeller. The engine fuel loop regulates requested torque; a separate propeller governor/PCU regulates speed using pitch. |
+| Direct-drive turbofan / jet aircraft | HPT/HPC on the HP shaft; LPT/fan/LPC on the LP shaft; separate core and bypass streams; original under-wing installation. A demand-derived N1 reference drives fuel response and independent spool dynamics. |
 
-Select any of ten components to inspect inputs, outputs, energy transfer, motion and dependencies. Orbit/zoom the original 3D schematic, isolate a part, separate stage groups, or close the casing. Apply a load step to see speed dip and recovery. Apply a fuel ceiling to see persistent speed droop. Follow fuel metering, sensors, controller feedback, accessory services and aircraft interfaces.
+## Learn in the workspace
 
-A conceptual two-spool turbofan comparison is included. **Only the turboshaft is simulated.** All engine geometry, numerical parameters and control logic are original educational assumptions; no manufacturer-specific maps, artwork or private training material is used.
+Use **Whole aircraft**, **Installed** and **Shaft section** presets. Select components in the grouped hierarchy or directly in 3D. Selection preserves the camera; **Focus** and **Return view** are explicit actions. Use **Shafts & drive** to trace complete continuous assemblies, including the concentric-shaft section inset. Other lenses separate gas/heat, control information, actuator commands, electrical supply and health/service interfaces.
+
+Each component/interface explains its mechanism, motion, numerical fidelity, signal role and public basis. Speed pickups have distinct shaft/geared locations. Gas-temperature probe planes are explicit; calculated T4 is not mislabeled as measured EGT/ITT. Fuel command and lagged actual metering are separate. Health monitoring and optional/configuration-dependent interfaces are identified without fabricated measurements or generic fault-accommodation claims.
+
+Guided trials start from a settled running baseline at t = 0. A five-step causal sequence, live explanation, event highlight and current values stay beside the model. Charts are supporting disclosures with separate speed/reference and driving/resisting-torque plots. Trial steps locate components; they do not scrub time. Pause, reset, reduced motion and a functional schematic fallback are provided.
 
 ## Run locally
 
-Requires Node.js 22 and Python 3 for the optional preview server.
+Requires Node.js 22. Python 3 is only needed for the optional preview server.
 
 ```sh
 npm ci
@@ -22,24 +30,21 @@ npm run build
 python3 -m http.server 4173 --bind 127.0.0.1 --directory dist
 ```
 
-Open `http://127.0.0.1:4173`. Use `?render=schematic` to select the 2D fallback explicitly. WebGL failures also use this fallback. All component explanations, diagrams, model controls and plots remain available without WebGL.
+Open `http://127.0.0.1:4173`. Share a pair with `?engine=turboprop` or `?engine=turbofan`. Select the fallback explicitly with `?render=schematic&engine=turbofan`. WebGL initialization failure also uses the fallback.
 
-The static build bundles a pinned official Three.js dependency locally. It needs no CDN, account, telemetry or backend. The published app uses system fonts.
+The static build bundles official pinned Three.js locally and versions its application modules. It requires no CDN, account, telemetry or backend. The GPT Site's existing identity is retained in `.openai/hosting.json`; release audience and deployment are verified separately through the native hosting tools.
 
-## Model and implementation
+## Source and evidence
 
-- [`src/simulation.js`](src/simulation.js): deterministic 120 Hz model, thermodynamic balances, two shaft inertias, synthetic load law, PI governor, actuator lag and limits.
-- [`src/components.js`](src/components.js): original explanations and public references.
-- [`src/renderer.js`](src/renderer.js): original procedural geometry, semantic selection, view overlays and camera controls.
-- [`src/app.js`](src/app.js): accessible HTML UI, fixed-step time accumulator and common-state chart/readouts.
-- [`docs/MODEL.md`](docs/MODEL.md): equations, assumptions, parameters and fidelity boundaries.
-- [`docs/SOURCES.md`](docs/SOURCES.md): claim, source, asset and rights ledger.
-- [`docs/VERIFICATION.md`](docs/VERIFICATION.md): checks and observed behavior.
+- [`docs/MODEL.md`](docs/MODEL.md): equations, gains, limitations and architecture-specific control paths.
+- [`docs/INTERFACES.md`](docs/INTERFACES.md): representative typed interface catalog generated from `src/manifest.js`.
+- [`docs/SOURCES.md`](docs/SOURCES.md): public claims, asset provenance and rights.
+- [`docs/VERIFICATION.md`](docs/VERIFICATION.md): numerical and actual browser evidence.
+- [`src/plants.js`](src/plants.js): three deterministic plant/control adapters over a fixed-step simulation.
+- [`src/manifest.js`](src/manifest.js): semantic component IDs, assembly hierarchy, anchors, shaft membership and typed connections.
+- [`src/renderer.js`](src/renderer.js): original engine and aircraft geometry; continuous mechanical assemblies and directed overlays.
+- [`src/lessons.js`](src/lessons.js): guided input events and causal explanations.
 
-These are properties of a teaching model, not validation against a physical engine. Start/stop, surge, stall, combustion stability, real maps, flight performance, production FADEC logic, sensor faults, electrical circuits and oil circuit dynamics are outside scope. Do not use this product for engine operation or design validation.
+The values and geometry are **synthetic educational assumptions**, not manufacturer engine maps, production control logic or calibrated flight performance. Startup, surge/stall, reverse/feather, detailed aerodynamics, real faults, redundancy, electrical/oil circuits and six-degree-of-freedom aircraft dynamics are outside scope. Thrust and hover-force estimates are explicitly simplified; wing lift is not engine thrust.
 
-## Publishing
-
-The `Deploy GitHub Pages` workflow installs the locked dependency, runs model checks, builds static assets and deploys through GitHub's official Pages actions. Sites identity is retained in `.openai/hosting.json`; GPT Site publication uses its supported source synchronization, archive and native deployment workflow.
-
-MIT for original project code and assets; Three.js has its own included MIT notice. Linked public references remain with their publishers; no source artwork or documents are distributed.
+MIT for original project code/assets. Three.js's MIT notice is included in the build. Public references remain with their publishers; no manuals, artwork, private training materials or proprietary parameters are distributed.
