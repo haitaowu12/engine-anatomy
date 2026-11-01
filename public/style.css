@@ -44,7 +44,7 @@
  .intro{padding:20px 1% 18px;gap:10px}.intro .eyebrow{display:none}.intro p:not(.eyebrow){font-size:15px}.intro .qualification{font-size:12px!important;line-height:1.5}
  .architecture-tabs>button{padding:12px 8px;min-height:94px}.architecture-tabs strong{font-size:14px;letter-spacing:-.02em}.architecture-tabs small{font-size:12px;line-height:1.45}.architecture-tabs .arch-icon,.architecture-tabs b{display:none}
  .workspace-heading{gap:12px;flex-wrap:wrap;font-size:13px}.model-fidelity{display:none}.workspace-heading>button{font-size:13px}.workbench{display:block}
- .pair-switch{display:none}.lenses{justify-content:flex-start;overflow-x:auto;scrollbar-width:thin;gap:4px}.lenses>button{flex-shrink:0;font-size:13px;padding:9px 11px;min-height:44px}
+ .pair-switch{display:none}.lenses{justify-content:flex-start;flex-wrap:wrap;overflow:visible;gap:4px}.lenses>button{flex:1 1 88px;min-width:0;white-space:normal;font-size:13px;padding:9px 11px;min-height:44px}
  .scene-stage{height:300px}.scene-caption{min-height:65px;padding:12px}.scene-caption .eyebrow{display:none}.scene-caption h2{font-size:17px;max-width:215px}.scene-caption>span{font-size:11px}
  .scene-values{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:12px 18px;font-size:15px}.scene-values span small{font-size:12px;margin-bottom:3px}
  .scene-legend{left:12px;right:12px;font-size:12px;bottom:10px}.scene-legend .motion-scale{font-size:11px;width:100%}.scene-event{bottom:64px}.scene-event>span,.scene-event strong{font-size:12px}.scene-pin{font-size:12px;max-width:170px}
@@ -56,3 +56,5 @@
 }
 
 .plots svg text { fill: #526b70; font-size: 12px; }
+
+@media(min-width:951px){.workspace-heading{display:none}.workbench{margin-top:20px}}
