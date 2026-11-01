@@ -2,7 +2,18 @@
 
 Verification checks properties of the declared synthetic equations, graph and implementation. It does not establish fidelity to a measured engine, certified controller or aircraft. Numerical checks and visual/mechanical inspection are separate evidence.
 
-## Numerical and graph checks
+
+## Version 3 current evidence (2026-11-01)
+
+The source implements the detailed anatomy/inspection release from baseline `a7640c6cd5bd167188d658a13cbfc8b1dd65934c`. Current real-geometry tests use the exact pinned `three@0.180.0` and stub the display/controls. They do not render pixels. The managed browser reports no WebGL; current visible acceptance uses the actual-geometry SVG backend, with its renderer status shown. Do not reuse the historical Apple M2 Pro evidence below as acceptance for the changed version 3 materials or geometry.
+
+Current automated coverage includes existing inspection state, plant and numerical regressions; concept/instance/parent/route/lesson completeness; shaft-work display closure; desktop/phone label packing; every leaf's actual geometry; all target recipes returning exactly; selection and isolation; true through-openings in the liner; complete independent-spool envelope clearance; matching planetary ratios; and SVG diagnostic/caching compatibility. The current suite contains 60 individual cases: 5 inspection-state, 18 plant/catalog, 6 numerical-core, 17 real-renderer-geometry, 7 anatomy/learning/work-balance, 4 label-placement and 3 learning-state cases. All pass. The static build also passes. Publication and final browser acceptance are recorded against the final artifact by the release verification owner.
+
+A browser-discovered SVG diagnostic crash was corrected: SVG exposes `info.render.faces` and no `info.memory`; those optional counters are now handled explicitly and regression-tested. SVG has its own neutral background/light scale, lower tessellation, capped projection rate and unchanged-frame cache. This is actual scene projection, not the old block schematic.
+
+The generated `release.json` and HTML build meta tag identify each artifact. The current production build must pass before publishing, and hosted build IDs must match afterward. Hardware-WebGL reflection/shadow appearance remains unverified in the current managed browser and must not be described as visually accepted there.
+
+## Historical version 2 numerical and graph checks
 
 `npm test` passes **21 test groups**: the original six regression groups plus five groups for each new plant architecture.
 
@@ -32,7 +43,7 @@ Limiting trials are deliberately different:
 - Turboprop at the same demand/ceiling settles near **100% Np** while still short of requested torque by approximately **206.7 N·m**. The separate prop governor unloads pitch; normal speed does not prove torque availability.
 - Turbofan at 100% demand and 65% ceiling requests **105% N1**, but settles near **94.54% N1** with the synthetic **N2 target** active. The displayed active limit is determined from the actual command cap.
 
-## Actual WebGL and interaction inspection
+## Historical version 2 WebGL and interaction inspection
 
 The local application was exercised in the in-app Chromium browser. Its graphics context reported **ANGLE Metal Renderer: Apple M2 Pro**. Actual rendered scenes were inspected; this was not a source-only or software-render-only check. A final public-host inspection found and corrected Retina canvas sizing: CSS dimensions now match the host while the drawing buffer retains the device pixel ratio. This prevents clipping caused by intrinsic canvas dimensions.
 
@@ -48,7 +59,7 @@ Visible acceptance covered:
 
 Browser-observed transients agreed with the model's qualitative behavior: helicopter Np initially fell, then reached **99.90% near 28.1 s** with no active limit; the propeller trial settled at approximately **100% Np, 25.60° pitch and 448 N·m**. The live causal narrative and scene highlights advanced beside the geometry. Plot panels are supporting disclosures with separate speed/reference and torque axes/units, not the only explanation.
 
-## Phone and accessibility flows
+## Historical version 2 phone and accessibility flows
 
 A **390 × 844** viewport was inspected and then reset. No horizontal overflow was observed. The scene remained visible while reading the causal explanation. A persistent phone bar successfully started a new trial near t = 0, paused it and restored the settled baseline with reset. Pair selection remained available beside the model.
 
@@ -56,10 +67,11 @@ The phone component dialog selected the post-reduction propeller-speed pickup an
 
 Controls use semantic buttons, native selects/dialogs and labeled ranges. Keyboard selection, camera buttons, focus/return and source-dialog dismissal are checked through the real UI. This is scoped interaction verification, not an exhaustive screen-reader or accessibility certification.
 
-## Functional schematic fallback
+## Historical version 2 schematic fallback
 
 The explicit `?render=schematic` path was opened in the actual browser. Keyboard Enter selected the N1 speed pickup through a connection endpoint; the selected name and live signal changed correctly. Three-dimensional camera/focus controls were disabled. The source dialog opened and closed with Escape. A fan limiting trial ran through the same numerical core: its initial state showed the 105% reference, lagged actual fuel and an active fuel ceiling. The separate speed/reference plot produced both live paths. Fallback connection boxes use the selected graph edge and label its information/actuation/fuel/electrical/service type and simulated/explained status; a monitoring signal is not drawn as a generic fuel-control feedback loop.
 
 ## Remaining validation boundaries
 
 No independent engine-test data or calibrated maps are used. Start/stop, surge/stall, combustion stability, thermal certification, detailed prop/rotor aerodynamics, flight dynamics, real fault/channel accommodation, electrical bus and oil circuits are outside scope. Fixed efficiencies and prescribed inlet/airspeed boundaries limit thrust estimates. Force arrows communicate direction only. Cross-browser/GPU compatibility is not certified. Automatic WebGL context-loss handling is code-reviewed; no hardware context loss is deliberately injected during these browser checks.
+

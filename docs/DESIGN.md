@@ -14,3 +14,10 @@ Sensors are individually located. The inspector states origin, destination, quan
 
 Visual foundation retains the first release's warm paper surround, technical type hierarchy and illuminated original metal cutaway. The earlier inspected Ciechanowski engine reference informed proximity of explanation to geometry; no code, artwork or fonts were copied. Actual screenshots, shaft paths and behavior must be inspected separately from numerical or graph tests. Generic geometry and force-direction arrows are explicitly schematic; no six-degree-of-freedom flight animation is presented as physics.
 
+
+
+## Version 3 coordinated detail architecture
+
+The prior prohibition on stretching mechanical shafts remains in force. Authored inspection now opens stationary shells and removable covers around continuous shafts; it does not forbid all educational separation. `anatomy.js` is the shared concept/instance/parent/circuit layer. `detail-geometry.js` authors construction against those IDs. `learning.js` produces routes and explanations using the same catalog. `labels.js` controls deterministic screen placement. `vector-renderer.js` projects actual geometry when WebGL is unavailable.
+
+Component / Walkthrough / Experiment activity tabs consolidate long reading panels. Scene lenses preserve current selection. Detailed static geometry is merged only within component/material/local-transform groups; dynamic and inspectable elements retain their own transforms. No material pass substitutes for missing anatomy, and no additional service label substitutes for an unmodeled numerical state. See `PRODUCTION.md` for the release taxonomy and measured/testable boundaries.

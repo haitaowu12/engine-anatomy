@@ -30,3 +30,23 @@ The product uses original explanations, original procedural geometry and declare
 Only original application source, original documentation and the official pinned Three.js dependency and openly licensed interface fonts enter the build. No private engine folders were reopened for either release. No employer training documents, screenshots, internal identifiers, test data, parameters or schedules are inputs to the published product. A publicly reachable document carrying a confidentiality restriction is not treated as a publishable source. Source links do not transfer artwork reuse rights.
 
 Inter and Space Grotesk are locally bundled under the SIL Open Font License 1.1. Their notices are included beside the font files. The static product has no analytics, backend, saved personal data or outbound model telemetry. Reference PDFs are not uploaded or bundled. Repository and Site credentials never enter source, build output or documentation. GitHub Pages is public. GPT Site audience and deployment are controlled and verified separately through its native hosting policy.
+
+
+
+## Version 3 detail and learning additions
+
+| Content | Primary public basis | Original implementation / boundary |
+|---|---|---|
+| Rotor/stator construction and independent concentric spools | [NASA axial compressor](https://www.grc.nasa.gov/www/k-12/VirtualAero/BottleRocket/airplane/caxial.html); [NASA turbofan](https://www.grc.nasa.gov/www/k-12/airplane/Animation/turbtyp/etfh.html) | Authored blade/disc/frame/shaft geometry; no copied CAD or performance maps |
+| Annular liner, air admission and combustor variants | [NASA combustor](https://www.grc.nasa.gov/www/k-12/BGP/burner.html) | Original perforations, dome, swirlers and injectors; no universal air split asserted |
+| Dry-sump pressure, scavenge, breather and separation | [FAA Powerplant chapter 6](https://www.faa.gov/sites/faa.gov/files/08_amtp_ch6.pdf), turbine lubrication sections | Representative topology with separate air outlet and recovered-oil return; no pressure or heat solver |
+| Electric/pneumatic starters | [FAA Powerplant chapter 5](https://www.faa.gov/sites/faa.gov/files/07_amtp_ch5.pdf) | Original starter bodies and distinct command/energy paths; conceptual sequence only |
+| Exciter, lead and igniter | [FAA Powerplant chapter 4](https://www.faa.gov/sites/faa.gov/files/06_amtp_ch4.pdf) | Original hardware context; ignition availability is not combustion-state simulation |
+| Operation and procedure dependence | [FAA Powerplant chapter 10](https://www.faa.gov/sites/faa.gov/files/12_amtp_ch10_0.pdf) | Start/shutdown explanations without timings, limits or operating instructions |
+| Centrifugal versus axial compression | [NASA centrifugal compressor](https://www.grc.nasa.gov/www/k-12/VirtualAero/BottleRocket/airplane/centrf.html) | Original comparison diagram; main running plants retain axial geometry |
+| Reverse-flow public example | [P&W PT6A architecture](https://www.rtx.com/prattwhitney/products/general-aviation-engines/pt6a) | Source-specific example, not a claim that all turboprops are reverse flow |
+| Geared versus direct fan | [MTU GTF architecture](https://www.mtu.de/engines/commercial-aircraft-engines/narrowbody-and-regional-jets/gtf-engine-family/) | Original comparison diagram; no manufacturer performance claims or product geometry copied |
+| Sun/ring/planet/carrier kinematics | [MathWorks planetary gear](https://www.mathworks.com/help/sdl/ref/planetarygear.html) | Original synthetic tooth counts; mathematical relation, not copied implementation |
+| Geometry fallback | Official pinned Three 0.180.0 SVGRenderer and Projector source | MIT, locally bundled; original instance-expansion adapter and scene; limited vector shading is explicit |
+
+All added educational explanations are original paraphrases. The source documents are linked rather than bundled. Hardware geometry, diagram assets, material settings and the procedural environment are original.

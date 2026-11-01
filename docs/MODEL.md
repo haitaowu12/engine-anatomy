@@ -79,3 +79,13 @@ Electrical bus supply is assumed available. Oil, chip and vibration health paths
 ## Validation scope
 
 Tests check finite positive states across input corners; mass/heat/work and shaft balances; distinct normal and limiting responses; fixed-step frame-cadence reproducibility; reset; timestep refinement; and graph/sensor/control-boundary consistency. Original first-release regressions are retained. These verify the declared equations and implementation, **not fidelity to a measured engine**. Hardware WebGL and visible mechanical paths require separate browser inspection. Cross-browser/GPU certification, real performance matching, start/stop, surge/stall, combustion stability, bearing/oil/electrical circuits, blade stress/life, emissions, reverse/feather, real fault handling and full aircraft dynamics remain outside scope.
+
+
+
+## Version 3 construction, services and learning views
+
+The richer anatomy does not change these equations. Detailed discs, stators, liners, bearings, seals, filters, starters and drives are construction explanations. Fuel/oil/electrical route animation communicates direction without creating unmodeled pressure, temperature or electrical states. Pressure supply, scavenge, relief, recovered oil and separated breather air have distinct graph branches. Electric and pneumatic starting examples distinguish command information from delivered starting energy. Conceptual start/shutdown walkthroughs pause the existing running model and do not claim numerical coast-up/coast-down.
+
+The Gas · heat · work view displays existing total-temperature stations and shaft power terms. For each shaft, drive minus resisting power equals net torque times current angular speed, the modeled rate of change of rotational kinetic energy. These work bars are not a whole-engine fuel-energy accounting diagram. Real gains, geometry, cooling splits and engine maps are not inferred from their visual detail.
+
+The fixed-ring reduction illustrations use original tooth counts matching the already declared 12:1 and 10:1 ratios. They do not add gearbox dynamics, efficiency maps or manufacturing contact analysis. The direct-drive fan model retains no reduction. Axial/centrifugal, forward/reverse flow and direct/geared fan are explicit source-backed comparisons, not hidden changes to the running plants.
