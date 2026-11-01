@@ -1,0 +1,75 @@
+# Engine Anatomy 4 — installation, representation and navigation corrections
+
+This release follows the user's review of version 3, with baseline commit `84752068db01034c61a4be5133fc8764c8018fab`. The numerical plants remain unchanged. The correction is to what the geometry and interface imply, as well as to the shapes themselves.
+
+## Findings and corrections
+
+| Finding in version 3 | Why it matters | Version 4 change |
+|---|---|---|
+| Aircraft fuel supply, battery/bus, pilot demand, cockpit indications and channel concepts all received 3D proxies at their graph anchors | A learner could interpret a circuit layout or information boundary as loose engine hardware | Every node declares physical construction, an assembly, or an aircraft/system interface. Interface nodes stay in the catalog and the complete circuit/control diagrams, with no physical proxy beside the engine. |
+| Fuel/oil service parts sat in parallel rows below the engine | It resembled a permanently exploded bench even with inspection at zero | Engine-side filters, reservoir, pumps, cooler, breather, starter and electronics are arranged around the case/accessory zone. Representative mounting standoffs, case attachment and shared updated anchors replace the detached layout. Exact installation positions remain explicitly generic. |
+| Whole-aircraft geometry used stretched ellipsoids and an asymmetric, flat wing polygon | Aircraft context was difficult to recognize and gave poor structural cues | Original lofted fuselages and tail booms, paired swept/tapered airfoil wings, horizontal/vertical tail surfaces, glazing, engine deck/pylons, mounts and landing context. Fixed-wing examples show a twin-engine installation with only the near engine simulated. The far pod is explicitly exterior context. |
+| The helicopter mast passed vertically through the engine's combustor | Mechanical continuity alone had missed an installation interference | The complete mast, rotor, collective swashplate, pitch links and speed-pickup anchor move forward to a clear station. The validated planetary ratios, inner-spool clearance, downstream clearance and rigid linkage constraints remain intact. A new actual-geometry gate checks mast/gas-path separation. |
+| A straight-through turboprop was drawn in front of a cabin without a convincing exhaust exit | It implied a poor engine/airframe arrangement | The generic turboprop uses a wing-mounted pod with a clear aft exhaust. It does not claim to be a PT6 or any other manufacturer type. The forward-returning independent power shaft still does not imply a reverse gas path. |
+| The helicopter’s old axial exhaust faced the aft reduction, and its offset tail shaft sat outside the narrow end of the boom | A recognizable outer shape must not conceal impossible routes | Open lateral exhaust ducts turn discharge outboard ahead of the reduction, with real cowling openings. A short schematic two-joint offset section centers the long tail shaft inside the tapering boom. Actual duct/reduction, mast/cowling and shaft/boom clearances are tested. Gas splitting, joint ripple and torsional dynamics are not added to the plant. |
+| Closed wings and nacelles showed black reverse-face fragments in the SVG fallback | Correct topology could still produce a misleading assembled view | Closed skins use outward face winding and front-face culling. Genuinely enclosed shell alternatives are suppressed behind a closed aircraft cowling; visible intake fans, lips and nozzle outlets remain. All hardware returns in Cutaway, Engine assembly or inspection. Actual Projector and ray-visibility regressions cover the failure. |
+| Process/connection overlays still depended on spatially separated little objects | Topology and causal responsibility became harder to read | **Control diagram** and **Circuit diagram** have a dedicated, responsive 2D representation. Aircraft boundaries, engine hardware, ordered paths, returns, command/energy types and modeled/explanatory scope are visible. **Show this hardware** returns to the physical model for a real component. |
+| Deep links preserved only the engine/component; parent context was a text link | Moving between views or returning in the browser lost learning context | View and Cutaway controls above the model, clickable ancestor breadcrumbs, previous/next component controls, and engine/component/lens/view/activity/circuit/lesson URL state. Intentional component, architecture and lens navigation creates browser history entries. |
+| Animated SVG projection could monopolize a browser lacking WebGL | Visible controls became difficult to use | SVG starts with reduced motion, caches unchanged scenes, quantizes insignificant pitch-key noise and does not render the hidden 3D scene while a system diagram is active. Physical animation remains available by clearing Reduce motion. |
+| All bearing detail had inherited generic stationary text | Inner-race text did not match its actual animation | Inner races identify their supported rotating shaft; outer races stay fixed; rolling elements explicitly remain a static construction view because rolling kinematics are not solved. |
+
+## Page and activity review
+
+The app is one page with three architecture routes. The following review applies to each route rather than treating the landing page as the entire product. The complete node inventory is in [COMPONENT-REVIEW.md](COMPONENT-REVIEW.md).
+
+| Area | Review disposition | Correct representation and retained boundary |
+|---|---|---|
+| Turboshaft / helicopter | Updated | Engine assembly, independent free turbine, synthetic 12:1 reduction, connected main/tail drivetrain, mast clear of the core, lateral exhaust outlets clear of the reduction, a centered long tail shaft, pitch linkage and recognizable cabin/tail/skids. No autorotation, cyclic/yaw or flight solver. |
+| Turboprop | Updated | Independent returning power shaft, 10:1 reduction, actual blade-root pitch mechanism and a wing-mounted aircraft context. Only the near engine has a plant; the separate engine torque and propeller-speed loops remain separate. |
+| Direct-drive turbofan | Updated | Independent HP/LP shafts, fan/bypass and core streams, under-wing pylons and declared exterior companion pod. No hidden fan gearbox, second-engine plant or flight dynamics. |
+| Component browsing/search | Updated | One semantic identity across diagrams, physical selection, breadcrumbs, hierarchy, parent navigation and source. Remote interfaces do not offer fake physical inspection. |
+| Anatomy / Engine assembly | Updated | Installed internal and external engine hardware. Distant airframe context is hidden until requested; no automatic component explosion. |
+| Whole aircraft | Rebuilt | Original dimensionless installation geometry, with distinct structural and propulsion roles. Whole-aircraft framing uses actual geometry bounds. Upper/lower wing surfaces have outward normals on both mirrored halves; actual-geometry rays require the short swept pylons to enter the wing volume. The studied fixed-wing engine has a closed nacelle/cowling sharing the companion pod’s exterior envelope. The helicopter has an engine deck cowling with open intake and separate exhaust outlets. Cutaway opens the studied engine cover. Force arrows are directions, not a solved flight pose. |
+| Shaft section / Shafts & drive | Reviewed, regression retained | Independent shafts remain geometrically separate. Complete-route focus is available when the load extends outside the engine. |
+| Gas / heat / work | Reviewed, retained | Lumped total states and separate shaft-work balances, not local CFD, a wall-temperature field or a whole-engine fuel-energy Sankey. |
+| Control diagram | Replaced | Chosen governor/FADEC causality, signal/command/energy types and separate propeller loop. Aircraft indications and optional channel architecture remain explanatory interfaces. |
+| Circuit diagram | Replaced | Fuel, oil, breather, starting and ignition paths with explicit external boundaries, branches and returns. The supplied-pressure/electrical states are not invented. |
+| Compressor / combustor / turbine inspection | Reviewed, retained | Authored pressure-shell and liner stages expose real blade/vane/disc/port geometry; rotor topology stays intact. |
+| Bearing / output / filter / starter inspection | Reviewed and coordinated with new locations | Exact reassembly and independent clearances remain gated. Starting is an explanatory assembly because the numerical plant begins already running. |
+| Walkthroughs | Reviewed and linked to proper representations | All step IDs remain valid. Fuel, oil and starting use the circuit diagram; physical mechanisms use the relevant geometry lens. Conceptual starting/shutdown supplies neither a universal sequence nor simulated coast-up/coast-down. |
+| Experiments / traces | Reviewed, plant unchanged | Three different running control responses and limits remain governed by the existing tested equations. A two-engine visual context does not double the displayed thrust. |
+| Compare architectures | Reviewed, retained | Axial/centrifugal, forward/reverse-flow and direct/geared-fan alternatives stay explicit comparisons; they do not silently mutate the selected plant. |
+| Sources, assumptions and final fallback | Updated where necessary | Public primary references and original assets. Native HTML diagrams remain useful when WebGL is absent. Unsupported 3D controls stay disabled in semantic fallback. |
+
+## Verification and evidence
+
+`tests/renderer.test.mjs` exercises the exact pinned Three geometry with stubbed display/controls. New tests check that aircraft interface proxies are absent, installed service anchors stay near the engine, installed views exclude distant context, fixed-wing halves are actually mirrored with outward upper/lower normals and thickness, fuselages taper, tails exist, pylons physically meet the wings, matching closed nacelles open correctly, and the helicopter mast clears the core. The helicopter tests also verify a removable deck cowling, real hollow lateral exhausts ahead of the complete reduction envelope and a physically connected long tail shaft contained inside the actual tapered boom. External filter-focus rays must reach the filter before another component. Existing geometric clearance, staging/reassembly, planetary-kinematic and moving blade-root link checks remain required.
+
+`tests/airframe-skins.test.mjs` projects the actual authored skins through the pinned Three.js `Projector` at both detail budgets. It rejects back-facing closed-skin triangles, includes a counterfactual that reproduces the old two-sided-face failure, and ray-tests bounded helicopter exhaust openings. Full-scene cowl sampling compares painter visibility with the nearest actual raycast surface. This specifically guards the fallback renderer’s average-depth ordering limitation; it is not a GPU material or photometric claim.
+
+`tests/representation.test.mjs` checks every node's declared representation and public source, all remote interfaces' usable diagram routes, every circuit node/branch and all walkthrough targets. These are structural/behavioral checks rather than pixel claims. The browser release owner separately records actual screenshots and interaction checks in `docs/audit-4/`. Historical version 2/3 GPU observations do not establish acceptance for this release.
+
+The version 3 baseline screenshot [before-aircraft-visible.jpg](audit-4/before-aircraft-visible.jpg) records the user's reported whole-aircraft issue.
+
+### Observed browser acceptance — 1 November 2026
+
+The release owner inspected the actual built app at a 1348 × 926 browser viewport. This browser disables WebGL, so these captures verify the app's real SVG geometry fallback and native HTML diagrams. They do not claim GPU material, mobile-device or tablet visual acceptance.
+
+| Evidence | Observed result |
+|---|---|
+| [Turboprop aircraft](audit-4/after-turboprop.jpg) | Complete tapered airframe, mirrored wings and tails, installed engine pods and a recognizable propeller-aircraft silhouette. The closed cowling no longer shows reverse-face fragments. |
+| [Turbofan aircraft](audit-4/after-turbofan.jpg) | Recognizable twin-engine aircraft context, pylons meeting the wings, closed installed nacelles and visible inlet/nozzle context. Only the near engine is simulated. |
+| [Helicopter aircraft](audit-4/after-helicopter.jpg) | Cabin, boom, skids, rotor and covered engine installation are coherent; the engine has separate lateral exhaust openings and the mast clears its core. |
+| [Fuel circuit](audit-4/after-circuit.jpg) | Remote aircraft interfaces have dashed boundaries, real engine equipment has solid cards, and numbered typed connections lead to the selected hardware. The diagram uses normal page flow: its content height equals its scroll height, without a nested scrolling pane. |
+
+The browser pass also exercised Fuel and Oil circuits, the Control diagram, **Show this hardware**, the oil-filter inspection recipe at an intermediate stage and exact reassembly, architecture switching, Whole aircraft and Cutaway, walkthrough step routing, and browser Back navigation. Circuit entry selects a relevant member and updates the scene title. Hardware inspection follows the chosen recipe instead of opening an unrelated assembly. Engine-side filter inspection stays physically anchored to the installed engine.
+
+No application exception appeared in the observed release interactions. The browser logs reported its disabled WebGL context and browser-extension metadata errors; the expected SVG fallback remained usable. The final release identifier is generated in `release.json`; production-host parity is checked separately after publication.
+
+## Public construction basis
+
+- [NASA Glenn: airplane parts and function](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/airplane-parts-function/) supports the distinction between fuselage, wings, stabilizers and different possible installations. The original shapes are not downloaded NASA assets or a calibrated airframe.
+- [FAA Helicopter Flying Handbook, chapter 4](https://www.faa.gov/sites/faa.gov/files/regulations_policies/handbooks_manuals/aviation/helicopter_flying_handbook/hfh_ch04.pdf) supports the engine/transmission/rotor and airframe relationships. Placement and dimensions here remain instructional.
+- [FAA Powerplant fuel systems, chapter 2](https://www.faa.gov/sites/faa.gov/files/04_amtp_ch2.pdf), [lubrication, chapter 6](https://www.faa.gov/sites/faa.gov/files/08_amtp_ch6.pdf), [starting, chapter 5](https://www.faa.gov/sites/faa.gov/files/07_amtp_ch5.pdf) and [ignition, chapter 4](https://www.faa.gov/sites/faa.gov/files/06_amtp_ch4.pdf) remain the public basis for the qualified equipment functions. They do not establish the model's exact accessory locations or a universal aircraft interface list.
+
+Only original source, prose, procedural geometry, licensed dependencies/fonts and project review evidence enter the build. No source-publisher artwork or private training material is copied.

@@ -4,3 +4,5 @@ output/
 .DS_Store
 *.tgz
 .env*
+
+/node_modules

@@ -1,6 +1,7 @@
 import {enrichAnatomy,DETAIL_SOURCES} from './anatomy.js';
 export const SOURCES={
  ...DETAIL_SOURCES,
+ airframe:{title:'NASA Glenn · Airplane parts and function',url:'https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/airplane-parts-function/',scope:'Fuselage, wing, stabilizers, control surfaces and configuration variation; original geometry here is not an aircraft replica'},
  engine:{title:'FAA · AMT Powerplant, chapter 1',url:'https://www.faa.gov/sites/faa.gov/files/03_amtp_ch1.pdf',scope:'Gas-turbine construction, compressors, combustors and turbines'},
  fuel:{title:'FAA · AMT Powerplant, chapter 2',url:'https://www.faa.gov/sites/faa.gov/files/04_amtp_ch2.pdf',scope:'Fuel metering, electronic controls and representative feedback'},
  helicopter:{title:'FAA · Helicopter Flying Handbook, chapter 4',url:'https://www.faa.gov/sites/faa.gov/files/regulations_policies/handbooks_manuals/aviation/helicopter_flying_handbook/hfh_ch04.pdf',scope:'Engine, transmission, freewheeling unit and helicopter systems'},
