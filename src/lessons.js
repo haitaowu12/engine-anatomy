@@ -32,3 +32,8 @@ export function lessonSteps(kind,scenario,d){
  ];
 }
 export function phaseFor(kind,scenario,s,d,active){if(!active)return 0;const t=s.t;if(t<.7)return 0;if(t<2.8)return 1;if(t<6)return 2;if(t<14)return 3;return 4;}
+
+export function nearGovernedEquilibrium(kind,d){
+ const targetMet=kind==='turboprop'?Math.abs(d.controlError)<2&&Math.abs(d.np-1)<.01:Math.abs(d.controlError)<.01;
+ return d.limit==='None'&&targetMet&&Math.abs(d.netP)<.01*Math.max(1,Math.abs(d.qPower))&&Math.abs(d.netG)<.01*Math.max(1,Math.abs(d.qGas));
+}
