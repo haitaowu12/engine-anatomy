@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DT,GEAR,plantDefaults,initialPlant,observePlant,stepPlant,createPlantRunner} from '../src/plants.js';
 import {buildManifest,SOURCES} from '../src/manifest.js';
-import {trialInputs} from '../src/lessons.js';
+import {trialInputs,nearGovernedEquilibrium} from '../src/lessons.js';
 const kinds=['helicopter','turboprop','turbofan'];
 const near=(a,b,tol)=>assert.ok(Math.abs(a-b)<=tol,`${a} versus ${b}; tolerance ${tol}`);
 const run=(kind,s,u,seconds,dt=DT)=>{for(let i=0;i<Math.round(seconds/dt);i++)s=stepPlant(kind,s,u,dt);return s;};
@@ -27,6 +27,15 @@ for(const kind of kinds){
   if(kind==='helicopter'){assert.ok(low<.96);near(d.np,1,.002);assert.ok(d.thrust>before.thrust);}
   if(kind==='turboprop'){assert.ok(high>1.02);assert.ok(maxPitch>.5);near(d.np,1,.002);near(d.controlError,0,1);assert.ok(d.thrust>before.thrust*1.3);}
   if(kind==='turbofan'){assert.ok(d.ng>before.ng);assert.ok(d.np>before.np);near(d.np,d.speedReference,.001);assert.ok(d.bypassThrust>before.bypassThrust&&d.thrust>before.thrust);}
+ });
+ test(`${kind}: equilibrium status requires recovered demand and balanced shafts`,()=>{
+  const u={...plantDefaults(kind),...trialInputs(kind,'increase')};
+  const start=observePlant(kind,initialPlant(kind),u);
+  assert.equal(nearGovernedEquilibrium(kind,start),false,'a new input is transient before speed has time to move');
+  const settled=observePlant(kind,run(kind,initialPlant(kind),u,120),u);
+  assert.equal(nearGovernedEquilibrium(kind,settled),true,'a recovered, balanced running response is settled');
+  const limitedInputs={...plantDefaults(kind),...trialInputs(kind,'limit')};
+  assert.equal(nearGovernedEquilibrium(kind,observePlant(kind,run(kind,initialPlant(kind),limitedInputs,120),limitedInputs)),false);
  });
  test(`${kind}: active limit does not falsely imply demand is met`,()=>{
   const u={...plantDefaults(kind),...trialInputs(kind,'limit')},s=run(kind,initialPlant(kind),u,60),d=observePlant(kind,s,u);
