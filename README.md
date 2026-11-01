@@ -8,7 +8,7 @@ An original interactive engineering atlas of **three engine–airframe pairs**. 
 | Pair | Mechanical and control story |
 |---|---|
 | Turboshaft / helicopter | Independent gas-generator and power shafts; reduction/freewheel context; main transmission, mast, main rotor and tail drive. Collective changes load; engine fuel governing recovers Np. |
-| Turboprop / propeller aircraft | Forward-returning independent power shaft, reduction and pitchable propeller. The engine fuel loop regulates requested torque; a separate propeller governor/PCU regulates speed using pitch. |
+| Turboprop / propeller aircraft | An independent power shaft runs forward inside the hollow gas-generator shaft to the reduction gearbox and pitchable propeller. The engine fuel loop regulates requested torque; a separate propeller governor/PCU regulates speed using pitch. |
 | Direct-drive turbofan / jet aircraft | HPT/HPC on the HP shaft; LPT/fan/LPC on the LP shaft; separate core and bypass streams; original under-wing installation. A demand-derived N1 reference drives fuel response and independent spool dynamics. |
 
 ## Learn in the workspace
@@ -45,6 +45,6 @@ The static build bundles official pinned Three.js locally and versions its appli
 - [`src/renderer.js`](src/renderer.js): original engine and aircraft geometry; continuous mechanical assemblies and directed overlays.
 - [`src/lessons.js`](src/lessons.js): guided input events and causal explanations.
 
-The values and geometry are **synthetic educational assumptions**, not manufacturer engine maps, production control logic or calibrated flight performance. Startup, surge/stall, reverse/feather, detailed aerodynamics, real faults, redundancy, electrical/oil circuits and six-degree-of-freedom aircraft dynamics are outside scope. Thrust and hover-force estimates are explicitly simplified; wing lift is not engine thrust.
+The values and geometry are **synthetic educational assumptions**, not manufacturer engine maps, production control logic or calibrated flight performance. Startup, surge/stall, reverse/feather, detailed aerodynamics, real fault response and six-degree-of-freedom aircraft dynamics are outside the simulation scope. Oil, electrical-supply and redundancy/channel interfaces are explained where shown; their circuit dynamics and fault-accommodation logic are not simulated. Thrust and hover-force estimates are explicitly simplified; wing lift is not engine thrust.
 
 MIT for original project code/assets. Three.js's MIT notice is included in the build. Public references remain with their publishers; no manuals, artwork, private training materials or proprietary parameters are distributed.
