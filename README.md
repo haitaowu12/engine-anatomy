@@ -15,6 +15,8 @@ An original interactive engineering atlas of **three engine–airframe pairs**. 
 
 Use **Whole aircraft**, **Installed** and **Shaft section** presets. Select components in the grouped hierarchy or directly in 3D. Selection preserves the camera; **Focus** and **Return view** are explicit actions. Use **Shafts & drive** to trace complete continuous assemblies, including the concentric-shaft section inset. Other lenses separate gas/heat, control information, actuator commands, electrical supply and health/service interfaces.
 
+Use **Exploded inspection** to separate the casing sectors first, then expose the combustor liner. The running model pauses; reassembly restores its previous pause state. Shafts, rotors, stators and bearing locations remain assembled. This is an instructional separation of generic shell sectors, not a manufacturer maintenance sequence. See [`docs/INSPECTION.md`](docs/INSPECTION.md) for scope and validation.
+
 Each component/interface explains its mechanism, motion, numerical fidelity, signal role and public basis. Speed pickups have distinct shaft/geared locations. Gas-temperature probe planes are explicit; calculated T4 is not mislabeled as measured EGT/ITT. Fuel command and lagged actual metering are separate. Health monitoring and optional/configuration-dependent interfaces are identified without fabricated measurements or generic fault-accommodation claims.
 
 Guided trials start from a settled running baseline at t = 0. A five-step causal sequence, live explanation, event highlight and current values stay beside the model. Charts are supporting disclosures with separate speed/reference and driving/resisting-torque plots. Trial steps locate components; they do not scrub time. Pause, reset, reduced motion and a functional schematic fallback are provided.
@@ -48,3 +50,4 @@ The static build bundles official pinned Three.js locally and versions its appli
 The values and geometry are **synthetic educational assumptions**, not manufacturer engine maps, production control logic or calibrated flight performance. Startup, surge/stall, reverse/feather, detailed aerodynamics, real fault response and six-degree-of-freedom aircraft dynamics are outside the simulation scope. Oil, electrical-supply and redundancy/channel interfaces are explained where shown; their circuit dynamics and fault-accommodation logic are not simulated. Thrust and hover-force estimates are explicitly simplified; wing lift is not engine thrust.
 
 MIT for original project code/assets. Three.js's MIT notice is included in the build. Public references remain with their publishers; no manuals, artwork, private training materials or proprietary parameters are distributed.
+

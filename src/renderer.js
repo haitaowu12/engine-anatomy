@@ -1,19 +1,20 @@
 import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GEAR} from './plants.js';
+import {inspectionAmount,inspectionOffset,hubBore,SHAFT_CLEARANCE} from './inspection.js';
 const TAU=Math.PI*2;
 const C={cyan:0x77cde1,amber:0xe7af6c,silver:0xb0c2c6,dark:0x46606d,casing:0x7093a0,liner:0x927d6e,violet:0xb3a9ef,green:0x80b89d,white:0xc9d6d4};
-export function createAtlasRenderer(host,manifest,onSelect){
- const scene=new T.Scene(),renderer=new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});
+export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
+ const scene=new T.Scene(),renderer=rendering.renderer??new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.65));renderer.setClearColor(0,0);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.5;host.append(renderer.domElement);
  const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info');host.dataset.gpu=debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):'WebGL (details unavailable)';
  renderer.domElement.setAttribute('aria-label','Original interactive engine and airframe. Component tree and HTML camera controls provide keyboard access.');
- const camera=new T.OrthographicCamera(-10,10,6,-6,.1,200),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.1;controls.minZoom=.45;controls.maxZoom=6;controls.minPolarAngle=.08;controls.maxPolarAngle=Math.PI*.92;
+ const camera=new T.OrthographicCamera(-10,10,6,-6,.1,200),controls=rendering.createControls?.(camera,renderer.domElement)??new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.1;controls.minZoom=.45;controls.maxZoom=6;controls.minPolarAngle=.08;controls.maxPolarAngle=Math.PI*.92;
  scene.add(new T.HemisphereLight(0xe3f4ff,0x25252a,2.5));
  for(const [color,intensity,pos]of [[0xe5f4ff,4,[0,12,10]],[0xf7ce98,3,[7,6,-8]],[0xa4d9ed,2,[-8,2,5]]]){const l=new T.DirectionalLight(color,intensity);l.position.set(...pos);scene.add(l);}
  const grid=new T.GridHelper(80,40,0x8c8b85,0x8c8b85);grid.position.y=-7.5;grid.material.transparent=true;grid.material.opacity=.055;scene.add(grid);
- const root=new T.Group();scene.add(root);let groups=new Map(),meshes=[],rotations=[],pitchBlades=[],lines=[],flowParticles=[],markers=[],sectionCovers=[],closedCovers=[];
- let selected=manifest.initial,overlay='anatomy',preset='installed',isolate=false,shaftTrace=null,cutaway=true,span=16,savedFocus=null,currentState=null,currentD=null,currentU=null,eventNode=null;
+ const root=new T.Group();scene.add(root);let groups=new Map(),meshes=[],rotations=[],pitchBlades=[],lines=[],flowParticles=[],markers=[],sectionCovers=[],closedCovers=[],inspectionParts=[];
+ let selected=manifest.initial,overlay='anatomy',preset='installed',isolate=false,shaftTrace=null,cutaway=true,span=16,savedFocus=null,currentState=null,currentD=null,currentU=null,eventNode=null,inspection=0;
  const info=document.createElement('button');info.className='scene-pin';info.addEventListener('click',()=>focusSelected());host.append(info);const eventPin=document.createElement('button');eventPin.className='scene-pin event-pin';eventPin.hidden=true;eventPin.addEventListener('click',()=>{if(eventNode)onSelect(eventNode);});host.append(eventPin);
  const tempV=new T.Vector3(),dummy=new T.Object3D();
  const mat=(color,extra={})=>new T.MeshStandardMaterial({color,metalness:.55,roughness:.4,...extra});
@@ -26,16 +27,35 @@ export function createAtlasRenderer(host,manifest,onSelect){
   for(let i=0;i<profile.length-1;i++)for(let j=0;j<steps;j++){const a=i*(steps+1)+j,b=a+steps+1;idx.push(a,b,a+1,b,b+1,a+1);}
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setIndex(idx);g.computeVertexNormals();return mesh(id,g,color,[0,0,0],{side:T.DoubleSide,...extra});
  }
+ // Split instructional shells into sectors smaller than a half-circle. Each
+ // sector moves radially away from the shaft, without shearing rotor assemblies.
+ function shell(id,profile,color,stage,options={}){const {start=Math.PI*.7,length=Math.PI*1.3,...extra}=options,count=Math.ceil(length/Math.PI),sweep=length/count;
+  for(let i=0;i<count;i++){const a=start+i*sweep,key=id+':'+a+':'+sweep;let entry=inspectionParts.find(p=>p.key===key);
+   if(!entry){const group=new T.Group();group.userData.inspection={stage,start:a,sweep,angle:a+sweep/2};part(id).add(group);entry={key,id,stage,start:a,sweep,angle:a+sweep/2,anchor:[(profile[0][0]+profile.at(-1)[0])/2,Math.cos(a+sweep/2)*profile[0][1],Math.sin(a+sweep/2)*profile[0][1]],group};const guide=new T.Line(new T.BufferGeometry(),new T.LineDashedMaterial({color:0xb8aaa0,dashSize:.12,gapSize:.08,transparent:true,opacity:.48}));guide.userData.inspectionGuide=id;root.add(guide);entry.guide=guide;inspectionParts.push(entry);}
+   entry.group.add(surface(id,profile,color,{start:a,length:sweep,...extra}));
+  }
+ }
+ function linerDetail(object,angle){const entry=inspectionParts.find(p=>p.id==='combustor.liner'&&angle>=p.start-1e-6&&angle<=p.start+p.sweep+1e-6);if(entry)entry.group.add(object);}
+ function updateInspection(){for(const p of inspectionParts){p.group.position.fromArray(inspectionOffset(p.stage,p.angle,inspection));const from=new T.Vector3(...p.anchor);p.guide.geometry.setFromPoints([from,from.clone().add(p.group.position)]);p.guide.computeLineDistances();}host.dataset.inspection=String(inspection);}
+ function nodeAnchor(node){const anchor=new T.Vector3(...node.anchor),part=inspectionParts.find(p=>p.id===node.id);if(part&&inspection)anchor.fromArray(part.anchor).add(part.group.position);return anchor;}
+ function annularDisk(inner,outer,depth){const points=[[inner,-depth/2],[outer,-depth/2],[outer,depth/2],[inner,depth/2],[inner,-depth/2]].map(([r,y])=>new T.Vector2(r,y));return new T.LatheGeometry(points,32);}
  function bladeGeo(h,w,thickness=.04){const s=new T.Shape();s.moveTo(0,-w*.45);s.bezierCurveTo(h*.25,-w*.4,h*.7,-w*.05,h,w*.16);s.lineTo(h,w*.58);s.bezierCurveTo(h*.7,w*.2,h*.3,w*.12,0,w*.45);s.closePath();const g=new T.ExtrudeGeometry(s,{depth:thickness,bevelEnabled:true,bevelSize:.015,bevelThickness:.015,bevelSegments:1,steps:1});g.rotateZ(Math.PI/2);return g;}
  function row(id,x,r,hub,count,color,shaft){const g=part(id),pivot=new T.Group();pivot.position.x=x;g.add(pivot);
-  const disk=new T.Mesh(new T.CylinderGeometry(hub,hub,.14,32),mat(C.dark));disk.rotation.z=-Math.PI/2;disk.userData.id=id;disk.userData.baseColor=disk.material.color.clone();pivot.add(disk);meshes.push(disk);
+  const bore=hubBore(shaft,manifest.kind),disk=new T.Mesh(bore?annularDisk(bore,hub,.14):new T.CylinderGeometry(hub,hub,.14,32),mat(C.dark));disk.rotation.z=-Math.PI/2;disk.userData.id=id;disk.userData.baseColor=disk.material.color.clone();pivot.add(disk);meshes.push(disk);
   const b=new T.InstancedMesh(bladeGeo(r-hub,.24),mat(color),count);b.userData.id=id;b.userData.baseColor=b.material.color.clone();pivot.add(b);meshes.push(b);
   for(let i=0;i<count;i++){const a=i/count*TAU;dummy.position.set(0,Math.cos(a)*hub,Math.sin(a)*hub);dummy.rotation.set(a,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();b.setMatrixAt(i,dummy.matrix);}if(shaft)rotations.push({object:pivot,shaft,axis:'x',ratio:1});
  }
- function shaftBody(id,x0,x1,r,color,hollow=false){
-  if(hollow){surface(id,[[x0,r],[x1,r]],color,{start:0,length:TAU});const window=surface(id,[[x0,r],[x1,r]],color);window.visible=false;sectionCovers.push({full:groups.get(id).children.at(-2),section:window});}
-  else cylinder(id,[x0,0,0],[x1,0,0],r,color);
-  for(let x=x0+.2;x<x1;x+=1.35){ring(id,x,r+.025,.025,color);const key=mesh(id,new T.BoxGeometry(.24,.035,.04),0xf5e5c5,[x,r+.045,0]);markers.push({object:key,x,r:r+.045,shaft:id.startsWith('hp')||id.startsWith('gg')?'g':'p',axis:'x'});}
+ function shaftBody(id,x0,x1,r,color,hollow=false,clearSpan=null){
+  if(hollow){
+   const tube=(start,length)=>{const group=new T.Group();part(id).add(group);for(const profile of [[[x0,r],[x1,r]],[[x0,SHAFT_CLEARANCE.outerBore],[x1,SHAFT_CLEARANCE.outerBore]],[[x0,SHAFT_CLEARANCE.outerBore],[x0,r]],[[x1,r],[x1,SHAFT_CLEARANCE.outerBore]]])group.add(surface(id,profile,color,{start,length}));return group;};
+   const full=tube(0,TAU),section=tube(Math.PI*.7,Math.PI*1.3);section.visible=false;sectionCovers.push({full,section});
+  }else cylinder(id,[x0,0,0],[x1,0,0],r,color);
+  for(let x=x0+.2;x<x1;x+=1.35){
+   // Keys are .24 long and collar tubes .05 wide. Keep their whole swept
+   // envelope outside the independent outer shaft, including its end planes.
+   if(clearSpan&&x+SHAFT_CLEARANCE.decorationHalfLength>=clearSpan[0]&&x-SHAFT_CLEARANCE.decorationHalfLength<=clearSpan[1])continue;
+   ring(id,x,r+.025,.025,color);const key=mesh(id,new T.BoxGeometry(.24,.035,.04),0xf5e5c5,[x,r+.045,0]);markers.push({object:key,x,r:r+.045,shaft:id.startsWith('hp')||id.startsWith('gg')?'g':'p',axis:'x'});
+  }
  }
  function pipe(id,points,color,r=.035){const curve=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p)));return mesh(id,new T.TubeGeometry(curve,24,r,6,false),color);}
  function box(id,pos,size,color){return mesh(id,new T.BoxGeometry(...size),color,pos);}
@@ -83,24 +103,25 @@ export function createAtlasRenderer(host,manifest,onSelect){
  function buildEngine(){const fan=manifest.kind==='turbofan',prop=manifest.kind==='turboprop';
   surface('inlet',[[-5.55,fan?2.15:1.15],[-4.5,fan?1.8:1]],C.casing);ring('inlet',-5.55,fan?2.15:1.15,.045,C.silver);
   if(fan){row('fan.rotor',-4.95,2.04,.32,28,C.silver,'p');row('fan.stator',-4.52,1.99,.34,28,C.dark);row('lpc.rotor',-3.85,1.01,.3,22,C.silver,'p');row('lpc.rotor',-3.45,.95,.32,22,C.silver,'p');row('lpc.stator',-3.64,.97,.31,22,C.dark);
-   surface('bypass',[[-4.4,2.13],[4.4,1.9]],C.casing,{transparent:true,opacity:.4});ring('bypass',4.4,1.9,.05,C.cyan);
+   shell('bypass',[[-4.4,2.13],[4.4,1.9]],C.casing,'casing',{transparent:true,opacity:.4});ring('bypass',4.4,1.9,.05,C.cyan);
   }
   for(let i=0;i<(fan?3:5);i++){const x=(fan?-2.8:-4)+i*.48,r=(fan?.95:1.0)-i*.055;row('compressor.rotor',x,r,.3+i*.02,22,C.silver,'g');if(i<(fan?2:4))row('compressor.stator',x+.25,r-.03,.31+i*.02,22,C.dark);}
-  surface('compressor.stator',[[fan?-3.1:-4.4,1.05],[-1.35,.78]],C.casing);surface('diffuser',[[-1.5,.75],[-1,1]],C.dark);
-  surface('combustor.casing',[[-1.05,1.1],[1.05,1.1],[1.25,.86]],C.casing);surface('combustor.liner',[[-.8,.94],[.7,.94],[1,.77]],C.liner);surface('combustor.liner',[[-.85,.37],[1,.37]],C.liner,{start:0,length:TAU});
-  for(let i=0;i<4;i++)ring('combustor.liner',-.7+i*.4,.95,.022,C.amber);
-  const holeGeo=new T.SphereGeometry(.027,5,4);for(let j=0;j<4;j++)for(let i=0;i<16;i++){const a=Math.PI*.7+i/16*Math.PI*1.3;mesh('combustor.liner',holeGeo,C.dark,[-.6+j*.32,Math.cos(a)*.955,Math.sin(a)*.955]);}
+  shell('compressor.casing',[[fan?-3.1:-4.4,1.05],[-1.35,.78]],C.casing,'casing');surface('diffuser',[[-1.5,.75],[-1,1]],C.dark);
+  shell('combustor.casing',[[-1.05,1.1],[1.05,1.1],[1.25,.86]],C.casing,'casing');shell('combustor.liner',[[-.8,.94],[.7,.94],[1,.77]],C.liner,'liner');shell('combustor.liner',[[-.85,.37],[1,.37]],C.liner,'liner');
+  for(const sector of inspectionParts.filter(p=>p.id==='combustor.liner'))for(let i=0;i<4;i++){const points=Array.from({length:17},(_,j)=>{const a=sector.start+sector.sweep*j/16;return [-.7+i*.4,Math.cos(a)*.95,Math.sin(a)*.95];});sector.group.add(pipe('combustor.liner',points,C.amber,.022));}
+  const holeGeo=new T.SphereGeometry(.027,5,4);for(let j=0;j<4;j++)for(let i=0;i<16;i++){const a=Math.PI*.7+i/16*Math.PI*1.3;linerDetail(mesh('combustor.liner',holeGeo,C.dark,[-.6+j*.32,Math.cos(a)*.955,Math.sin(a)*.955]),a);}
   ring('fuel.nozzles',-.8,.97,.035,C.amber);for(let i=0;i<10;i++){const a=i/10*TAU;cylinder('fuel.nozzles',[-.82,Math.cos(a)*1.02,Math.sin(a)*1.02],[-.5,Math.cos(a)*.7,Math.sin(a)*.7],.035,C.amber);}
   cylinder('igniter',[.25,1.3,.8],[.25,.7,.45],.06,C.white);row('turbine.vanes',1.4,.83,.3,24,C.dark);row('gg.rotor',1.85,.83,.32,24,C.silver,'g');row('turbine.vanes',2.45,.9,.29,24,C.dark);row('power.rotor',2.85,.91,.3,26,C.amber,'p');row('power.rotor',3.2,.91,.3,26,C.amber,'p');
   surface('exhaust',[[3.5,1],[4.8,1.07]],C.casing);surface('exhaust',[[3.45,.31],[4.9,.14]],C.dark,{start:0,length:TAU});ring('exhaust',4.8,1.07,.035,C.silver);
-  const gg=fan?'hp.shaft':'gg.shaft',ps=fan?'lp.shaft':'power.shaft';shaftBody(gg,fan?-2.95:-4.2,2.06,.16,C.cyan,prop||fan);shaftBody(ps,fan?-5.1:prop?-6.7:2.7,fan?3.4:prop?3.4:5.5,prop||fan?.078:.14,C.amber);
+  const gg=fan?'hp.shaft':'gg.shaft',ps=fan?'lp.shaft':'power.shaft',concentric=prop||fan,outerSpan=[fan?-2.95:-4.2,2.06];shaftBody(gg,...outerSpan,SHAFT_CLEARANCE.outerRadius,C.cyan,concentric);shaftBody(ps,fan?-5.1:prop?-6.7:2.7,fan?3.4:prop?3.4:5.5,concentric?SHAFT_CLEARANCE.innerRadius:.14,C.amber,false,concentric?outerSpan:null);
   for(const x of [-3.1,1.1,3.45])ring('bearings',x,.23,.07,C.dark);
-  for(const [x,r,len,id]of [[-2.8,1.06,2.9,'compressor.stator'],[.05,1.13,2.2,'combustor.casing'],[2.5,1.02,2,'turbine.vanes']]){
-   const m=surface(id,[[x-len/2,r],[x+len/2,r]],C.casing,{start:0,length:TAU});m.visible=false;closedCovers.push(m);
+  shell('turbine.casing',[[1.1,1.02],[3.5,1.02]],C.casing,'casing');
+  for(const [x,r,len,id]of [[-2.8,1.06,2.9,'compressor.casing'],[.05,1.13,2.2,'combustor.casing'],[2.5,1.02,2,'turbine.casing']]){
+   const m=surface(id,[[x-len/2,r],[x+len/2,r]],C.casing,{start:0,length:TAU});m.visible=false;m.userData.closedCover=true;closedCovers.push(m);
   }
   box('controller',[1,-1.55,1.15],[.95,.28,.65],C.violet);for(let i=0;i<8;i++)box('controller',[.65+i*.1,-1.37,1.15],[.045,.07,.65],C.dark);
   box('fmu',[-.9,-1.25,1.1],[.5,.35,.4],C.amber);box('fuel.pump',[-2,-1.25,1.1],[.5,.4,.4],C.dark);pipe('fuel.nozzles',[[-.9,-1.25,1.1],[-.8,-.5,1.2],[-.8,.5,1.1]],C.amber);
-  box('accessory',[-2.7,-.8,.8],[.85,.38,.65],C.green);cylinder('accessory',[-2.7,0,0],[-2.7,-.8,.8],.08,C.cyan);
+  box('accessory',[-2.7,-.8,.8],[.85,.38,.65],C.green);cylinder('accessory',[-2.67,-SHAFT_CLEARANCE.outerRadius/Math.SQRT2,SHAFT_CLEARANCE.outerRadius/Math.SQRT2],[-2.67,-.8,.8],.04,C.cyan);
   for(const n of manifest.nodes){
    if(groups.has(n.id))continue;
    const color=n.group==='control'?C.violet:n.group==='service'?C.green:C.dark;
@@ -121,8 +142,8 @@ export function createAtlasRenderer(host,manifest,onSelect){
   if(manifest.kind==='turbofan')paths.push({points:[[-5.6,1.65,.6],[-4,1.65,.6],[0,1.7,.6],[4.8,1.65,.6],[6,1.7,.6]],bypass:true});
   for(const path of paths){const curve=new T.CatmullRomCurve3(path.points.map(p=>new T.Vector3(...p))),particles=new T.InstancedMesh(new T.SphereGeometry(.035,6,4),new T.MeshBasicMaterial({color:path.bypass?C.cyan:C.amber}),45);root.add(particles);flowParticles.push({particles,curve,bypass:path.bypass});}
  }
- function clear(){for(const g of root.children){g.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});}root.clear();groups=new Map();meshes=[];rotations=[];pitchBlades=[];lines=[];flowParticles=[];markers=[];sectionCovers=[];closedCovers=[];}
- function load(next){clear();manifest=next;selected=next.initial;shaftTrace=null;eventNode=null;isolate=false;buildAirframe();buildEngine();buildEdges();buildFlows();updateStyles();}
+ function clear(){for(const g of root.children){g.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});}root.clear();groups=new Map();meshes=[];rotations=[];pitchBlades=[];lines=[];flowParticles=[];markers=[];sectionCovers=[];closedCovers=[];inspectionParts=[];}
+ function load(next){clear();manifest=next;selected=next.initial;shaftTrace=null;eventNode=null;isolate=false;inspection=0;buildAirframe();buildEngine();buildEdges();buildFlows();updateInspection();updateStyles();}
  function resize(){const w=host.clientWidth,h=host.clientHeight,vertical=Math.max(span,span*1.55/(w/h));camera.left=-vertical*w/h/2;camera.right=vertical*w/h/2;camera.top=vertical/2;camera.bottom=-vertical/2;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
  function cameraState(){return {position:camera.position.toArray(),target:controls.target.toArray(),zoom:camera.zoom,span};}
  function restore(v){camera.position.fromArray(v.position);controls.target.fromArray(v.target);camera.zoom=v.zoom;span=v.span;resize();controls.update();}
@@ -135,7 +156,7 @@ export function createAtlasRenderer(host,manifest,onSelect){
  function updateStyles(){const node=manifest.nodes.find(n=>n.id===selected),shaft=shaftTrace==='all'?null:shaftTrace||((overlay==='shafts'&&node?.shaft)?node.shaft:null),members=manifest.shafts.find(s=>s.id===shaft)?.members||[];
   const isProp=manifest.kind==='turboprop';const branchIds=['load.speed','prop.governor','pitch.actuator','pitch.feedback'].includes(selected)&&isProp?['load.speed','prop.governor','pitch.actuator','propeller']:(['speed.g','torque','demand','controller','fmu','fuel.nozzles'].includes(selected)||selected==='speed.p'&&!isProp)?['controller','fmu','fuel.nozzles','combustor.liner']:[];const branchEdges=new Set(branchIds.slice(0,-1).map((id,i)=>id+'>'+branchIds[i+1]));
   const neighborEdges=manifest.edges.filter(e=>(e.from===selected||e.to===selected||e.from===eventNode||e.to===eventNode||branchEdges.has(e.id))&&(selected!=='controller'||e.simulated)),neighbors=new Set(neighborEdges.flatMap(e=>[e.from,e.to]));
-  for(const [id,g]of groups){const n=manifest.nodes.find(n=>n.id===id);g.visible=!isolate||id===selected||(node?.shaft&&manifest.shafts.find(s=>s.id===node.shaft)?.members.includes(id));}
+  for(const [id,g]of groups){const n=manifest.nodes.find(n=>n.id===id);g.visible=Boolean(!isolate||id===selected||(node?.shaft&&manifest.shafts.find(s=>s.id===node.shaft)?.members.includes(id)));}
   for(const m of meshes){const id=m.userData.id,n=manifest.nodes.find(n=>n.id===id);if(!n)continue;
    const member=members.includes(id),hit=id===selected,eventHit=id===eventNode;
    m.visible=!(overlay==='shafts'&&((n.group==='control'||n.group==='service'&&id!=='accessory')&&!hit||shaft&&!member&&n.group==='air'));
@@ -158,12 +179,15 @@ export function createAtlasRenderer(host,manifest,onSelect){
    if(l.material)l.material.opacity=relevant?.95:.3;
   }
   for(const {full,section}of sectionCovers){full.visible=overlay!=='shafts';section.visible=overlay==='shafts';}
-  for(const m of closedCovers)m.visible=!cutaway&&overlay!=='shafts';
-  for(const f of flowParticles)f.particles.visible=!isolate&&(overlay==='gas'||overlay==='anatomy');
+  for(const p of inspectionParts)p.guide.visible=inspection>0&&!isolate&&p.group.position.lengthSq()>0&&groups.get(p.id).visible&&p.group.children.some(m=>m.visible);
+  for(const m of closedCovers)m.visible=!cutaway&&!inspection&&overlay!=='shafts';
+  for(const f of flowParticles)f.particles.visible=!isolate&&!inspection&&(overlay==='gas'||overlay==='anatomy');
   info.hidden=preset==='aircraft'||isolate||!!eventNode;info.textContent=(node?.name||'Selected component')+' ↗';
   info.setAttribute('aria-label','Selected component: '+(node?.name||selected));host.dataset.selection=selected;host.dataset.overlay=overlay;
  }
- function focusSelected(){host.dataset.focused='true';if(!savedFocus)savedFocus=cameraState();const n=manifest.nodes.find(n=>n.id===selected);if(!n)return;const target=new T.Vector3(...n.anchor),offset=camera.position.clone().sub(controls.target).normalize().multiplyScalar(16);controls.target.copy(target);camera.position.copy(target).add(offset);span=n.id==='airframe'?30:n.id==='rotor'?16:4;camera.zoom=1;resize();controls.update();}
+ function focusSelected(){host.dataset.focused='true';if(!savedFocus)savedFocus=cameraState();const n=manifest.nodes.find(n=>n.id===selected);if(!n)return;const target=nodeAnchor(n),offset=camera.position.clone().sub(controls.target).normalize().multiplyScalar(16);span=n.id==='airframe'?30:n.id==='rotor'?16:4;
+  if(inspection&&inspectionParts.some(p=>p.id===selected)){const bounds=new T.Box3().setFromObject(groups.get(selected)),size=bounds.getSize(new T.Vector3());bounds.getCenter(target);span=Math.max(4,size.length()*1.1/Math.min(1,host.clientWidth/host.clientHeight));}
+  controls.target.copy(target);camera.position.copy(target).add(offset);camera.zoom=1;resize();controls.update();}
  const raycaster=new T.Raycaster(),pointer=new T.Vector2();let down=null;
  renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
  renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);
@@ -171,7 +195,7 @@ export function createAtlasRenderer(host,manifest,onSelect){
  const observer=new ResizeObserver(resize);observer.observe(host);load(manifest);setPreset('installed');
  return {load(man){load(man);setPreset('installed');},setPreset,
   select(id){selected=id;shaftTrace=null;updateStyles();},setOverlay(value){overlay=value;shaftTrace=null;updateStyles();},traceShaft(id){overlay='shafts';shaftTrace=id;updateStyles();},
-  setIsolated(value){isolate=value;updateStyles();},setCutaway(value){cutaway=value;updateStyles();},
+  setIsolated(value){isolate=value;updateStyles();},setCutaway(value){cutaway=value;updateStyles();},setInspection(value){inspection=inspectionAmount(value);updateInspection();updateStyles();},
   focus:focusSelected,focusRoute(){
    if(!savedFocus)savedFocus=cameraState();host.dataset.focused='true';
    const members=shaftTrace&&shaftTrace!=='all'?manifest.shafts.find(s=>s.id===shaftTrace)?.members:manifest.shafts.flatMap(s=>s.members);
@@ -188,8 +212,9 @@ export function createAtlasRenderer(host,manifest,onSelect){
    for(const b of pitchBlades)b.object.rotation[b.axis]=(b.kind==='tail.rotor'?12:d.bladeAngle??12)*Math.PI/180;
    for(const m of markers){const a=(reduced?0:m.shaft==='g'?s.angleG:s.angleP)/250;m.object.position.y=Math.cos(a)*m.r;m.object.position.z=Math.sin(a)*m.r;m.object.rotation.x=a;}
    for(const f of flowParticles){for(let i=0;i<45;i++){const phase=(i/45+(reduced?0:f.bypass?s.bypassPhase:s.flowPhase))%1;const v=f.curve.getPoint(phase);v.z+=(i%3-1)*.1;dummy.position.copy(v);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();f.particles.setMatrixAt(i,dummy.matrix);}f.particles.instanceMatrix.needsUpdate=true;}
-   controls.update();scene.updateMatrixWorld();camera.updateMatrixWorld();const n=manifest.nodes.find(n=>n.id===selected);if(n){tempV.set(...n.anchor).project(camera);const x=(tempV.x*.5+.5)*host.clientWidth,y=(-tempV.y*.5+.5)*host.clientHeight;info.style.left=Math.max(90,Math.min(host.clientWidth-90,x))+'px';info.style.top=Math.max(88,Math.min(host.clientHeight-120,y-25))+'px';info.textContent=n.name+((x<0||x>host.clientWidth||y<0||y>host.clientHeight)?' · Focus →':' ↗');}const ev=manifest.nodes.find(n=>n.id===eventNode);eventPin.hidden=!ev||eventNode===selected||isolate;if(ev){tempV.set(...ev.anchor).project(camera);eventPin.style.left=Math.max(100,Math.min(host.clientWidth-100,(tempV.x*.5+.5)*host.clientWidth))+'px';eventPin.style.top=Math.max(94,Math.min(host.clientHeight-120,(-tempV.y*.5+.5)*host.clientHeight-12))+'px';eventPin.textContent='EVENT · '+ev.name;}
+   controls.update();scene.updateMatrixWorld();camera.updateMatrixWorld();const n=manifest.nodes.find(n=>n.id===selected);if(n){tempV.copy(nodeAnchor(n)).project(camera);const x=(tempV.x*.5+.5)*host.clientWidth,y=(-tempV.y*.5+.5)*host.clientHeight;info.style.left=Math.max(90,Math.min(host.clientWidth-90,x))+'px';info.style.top=Math.max(88,Math.min(host.clientHeight-120,y-25))+'px';info.textContent=n.name+((x<0||x>host.clientWidth||y<0||y>host.clientHeight)?' · Focus →':' ↗');}const ev=manifest.nodes.find(n=>n.id===eventNode);eventPin.hidden=!ev||eventNode===selected||isolate;if(ev){tempV.copy(nodeAnchor(ev)).project(camera);eventPin.style.left=Math.max(100,Math.min(host.clientWidth-100,(tempV.x*.5+.5)*host.clientWidth))+'px';eventPin.style.top=Math.max(94,Math.min(host.clientHeight-120,(-tempV.y*.5+.5)*host.clientHeight-12))+'px';eventPin.textContent='EVENT · '+ev.name;}
    renderer.render(scene,camera);const st=cameraState();host.dataset.camera=JSON.stringify({position:st.position.map(v=>+v.toFixed(5)),target:st.target.map(v=>+v.toFixed(5)),zoom:+st.zoom.toFixed(5)});host.dataset.parts=String(groups.size);
   },dispose(){observer.disconnect();controls.dispose();clear();renderer.dispose();host.replaceChildren();}
  };
 }
+
