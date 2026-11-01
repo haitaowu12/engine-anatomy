@@ -9,9 +9,9 @@ export function createAtlasRenderer(host,manifest,onSelect){
  const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info');host.dataset.gpu=debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):'WebGL (details unavailable)';
  renderer.domElement.setAttribute('aria-label','Original interactive engine and airframe. Component tree and HTML camera controls provide keyboard access.');
  const camera=new T.OrthographicCamera(-10,10,6,-6,.1,200),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.1;controls.minZoom=.45;controls.maxZoom=6;controls.minPolarAngle=.08;controls.maxPolarAngle=Math.PI*.92;
- scene.add(new T.HemisphereLight(0xe3f4ff,0x1a3038,2.5));
+ scene.add(new T.HemisphereLight(0xe3f4ff,0x25252a,2.5));
  for(const [color,intensity,pos]of [[0xe5f4ff,4,[0,12,10]],[0xf7ce98,3,[7,6,-8]],[0xa4d9ed,2,[-8,2,5]]]){const l=new T.DirectionalLight(color,intensity);l.position.set(...pos);scene.add(l);}
- const grid=new T.GridHelper(80,40,0x5f8996,0x5f8996);grid.position.y=-7.5;grid.material.transparent=true;grid.material.opacity=.055;scene.add(grid);
+ const grid=new T.GridHelper(80,40,0x8c8b85,0x8c8b85);grid.position.y=-7.5;grid.material.transparent=true;grid.material.opacity=.055;scene.add(grid);
  const root=new T.Group();scene.add(root);let groups=new Map(),meshes=[],rotations=[],pitchBlades=[],lines=[],flowParticles=[],markers=[],sectionCovers=[],closedCovers=[];
  let selected=manifest.initial,overlay='anatomy',preset='installed',isolate=false,shaftTrace=null,cutaway=true,span=16,savedFocus=null,currentState=null,currentD=null,currentU=null,eventNode=null;
  const info=document.createElement('button');info.className='scene-pin';info.addEventListener('click',()=>focusSelected());host.append(info);const eventPin=document.createElement('button');eventPin.className='scene-pin event-pin';eventPin.hidden=true;eventPin.addEventListener('click',()=>{if(eventNode)onSelect(eventNode);});host.append(eventPin);
