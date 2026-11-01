@@ -3,7 +3,7 @@
 An original interactive educational atlas of a generic free-turbine turboshaft: inspect the cutaway, select components and follow a load change through a simplified fuel-control loop.
 
 - **GitHub Pages:** https://haitaowu12.github.io/engine-anatomy/
-- **GPT Site:** https://engine-anatomy.techiesea.chatgpt.site
+- **GPT Site (owner-private):** https://engine-anatomy.techiesea.chatgpt.site
 
 ## Explore
 

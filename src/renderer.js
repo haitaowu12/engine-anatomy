@@ -106,7 +106,7 @@ export function createEngineRenderer(host,onSelect){
     for(let i=0;i<55;i++){const f=((i/55+(reduced?0:state.flowPhase))%1);const v=path.getPoint(f);const lane=i%3;v.y+=(lane-1)*.12;v.z+=(lane-1)*.1;particleDummy.position.copy(v);particleDummy.updateMatrix();particles.setMatrixAt(i,particleDummy.matrix);particles.setColorAt(i,new THREE.Color(f<.42?0x70c8df:f<.7?0xf4b574:0xb4c8d0));}particles.instanceMatrix.needsUpdate=true;if(particles.instanceColor)particles.instanceColor.needsUpdate=true;
     controls.update();scene.updateMatrixWorld();camera.updateMatrixWorld();
     const w=host.clientWidth,h=host.clientHeight;
-    for(const l of labels){l.el.hidden=(isolated&&l.id!==selected)||(w<550&&l.id!==selected);const p=l.point.clone();if(exploded)p.x=l.baseX*1.2;p.project(camera);l.el.style.left=`${(p.x*.5+.5)*w}px`;l.el.style.top=`${(-p.y*.5+.5)*h}px`;l.el.style.visibility=(p.z>1||p.x<-.94||p.x>.94)?'hidden':'visible';}
+    for(const l of labels){l.el.hidden=(isolated&&l.id!==selected)||(w<550&&l.id!==selected)||(w>=550&&w<750&&![selected,'inlet','gearbox'].includes(l.id));const p=l.point.clone();if(exploded)p.x=l.baseX*1.2;p.project(camera);l.el.style.left=`${(p.x*.5+.5)*w}px`;l.el.style.top=`${(-p.y*.5+.5)*h}px`;l.el.style.visibility=(p.z>1||p.x<-.94||p.x>.94)?'hidden':'visible';}
     renderer.render(scene,camera);
     host.dataset.camera=JSON.stringify({position:camera.position.toArray().map(v=>+v.toFixed(5)),target:controls.target.toArray().map(v=>+v.toFixed(5)),zoom:+camera.zoom.toFixed(5)});
   }

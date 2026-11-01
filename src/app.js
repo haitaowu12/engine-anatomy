@@ -16,10 +16,10 @@ function select(id){
 }
 select(selected);
 function fallback(message){scene?.dispose();scene=null;$('canvas-host').replaceChildren();$('fallback').hidden=false;$('render-status').textContent='2D schematic';$('scene-help').textContent=message;for(const id of ['cutaway','explode','isolate','orbit-left','zoom-in','zoom-out','reset-camera'])$(id).disabled=true;}
-try{
+async function bootScene(){try{
  if(new URLSearchParams(location.search).get('render')==='schematic')fallback('2D mode selected');
- else {const {createEngineRenderer}=await import('./renderer.js');scene=createEngineRenderer($('canvas-host'),select);$('render-status').textContent='Interactive 3D';$('canvas-host').addEventListener('webglcontextlost',e=>{e.preventDefault();fallback('Graphics context lost; model remains available.');},{capture:true});}
-}catch(error){console.warn('3D unavailable; using the 2D educational schematic.',error.message);fallback('3D unavailable; use the component selector.');}
+ else {const {createEngineRenderer}=await import('./renderer.js');scene=createEngineRenderer($('canvas-host'),select);scene.select(selected);scene.setCutaway($('cutaway').getAttribute('aria-pressed')==='true');scene.setExploded($('explode').getAttribute('aria-pressed')==='true');scene.setIsolated($('isolate').getAttribute('aria-pressed')==='true');scene.setView($('workspace').dataset.view||'engine');$('render-status').textContent='Interactive 3D';$('canvas-host').addEventListener('webglcontextlost',e=>{e.preventDefault();fallback('Graphics context lost; model remains available.');},{capture:true});}
+}catch(error){console.warn('3D unavailable; using the 2D educational schematic.',error.message);fallback('3D unavailable; use the component selector.');}}
 for(const [id,method]of [['cutaway','setCutaway'],['explode','setExploded'],['isolate','setIsolated']])$(id).addEventListener('click',()=>{const value=$(id).getAttribute('aria-pressed')!=='true';$(id).setAttribute('aria-pressed',String(value));scene?.[method](value);if(id==='explode')$('scene-help').textContent=value?'Exploded schematic · shaft and gas connections shown conceptually':'Drag to orbit · scroll to zoom · select a part';});
 $('reset-camera').addEventListener('click',()=>scene?.resetCamera());$('orbit-left').addEventListener('click',()=>scene?.orbit(-Math.PI/9));$('zoom-in').addEventListener('click',()=>scene?.zoom(1.2));$('zoom-out').addEventListener('click',()=>scene?.zoom(1/1.2));
 for(const b of document.querySelectorAll('[data-select]'))b.addEventListener('click',()=>{select(b.dataset.select);$('workspace').scrollIntoView({behavior:$('motion').checked?'instant':'smooth',block:'start'});});
@@ -66,3 +66,5 @@ function frame(now){
  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+bootScene();
