@@ -21,7 +21,7 @@ The catalog describes the three chosen synthetic architectures, not a universal 
 | Turbine outer casing | turbine.casing | helicopter:turbine.casing | Root / Turbine assemblies | turbine |
 | Gas-generator turbine rotor | gg.rotor | helicopter:gg.rotor | Root / Turbine assemblies | turbine |
 | Free power-turbine rotors | power.rotor | helicopter:power.rotor | Root / Turbine assemblies | turbine |
-| Core exhaust & nozzle | exhaust | helicopter:exhaust | Root / Intake & exhaust | engine |
+| Side exhaust ducts & collector | exhaust | helicopter:exhaust | Root / Intake & exhaust | engine |
 | Gas-generator shaft · Ng | gg.shaft | helicopter:gg.shaft | Root / Independent shaft assemblies | engine |
 | Power shaft · Np | power.shaft | helicopter:power.shaft | Root / Independent shaft assemblies | engine |
 | Shaft bearings & supports | bearings | helicopter:bearings | Root / Independent shaft assemblies | support |
@@ -129,6 +129,12 @@ The catalog describes the three chosen synthetic architectures, not a universal 
 | Inner race | bearing.power.inner | helicopter:bearing.power.inner | bearing.power | support |
 | Outer race & housing | bearing.power.outer | helicopter:bearing.power.outer | bearing.power | support |
 | Rolling elements & cage | bearing.power.rolling | helicopter:bearing.power.rolling | bearing.power | support |
+| Cabin & tail boom | airframe.fuselage | helicopter:airframe.fuselage | airframe | null |
+| Cockpit & cabin glazing | airframe.cockpit | helicopter:airframe.cockpit | airframe | null |
+| Tail surfaces | airframe.tail | helicopter:airframe.tail | airframe | null |
+| Landing skids | airframe.landing | helicopter:airframe.landing | airframe | null |
+| Engine deck & mounts | airframe.mounts | helicopter:airframe.mounts | airframe | null |
+| Studied engine nacelle / cowling | airframe.nacelle | helicopter:airframe.nacelle | airframe | null |
 
 ### Control, sensors & actuators
 
@@ -310,6 +316,13 @@ The catalog describes the three chosen synthetic architectures, not a universal 
 | Inner race | bearing.power.inner | turboprop:bearing.power.inner | bearing.power | support |
 | Outer race & housing | bearing.power.outer | turboprop:bearing.power.outer | bearing.power | support |
 | Rolling elements & cage | bearing.power.rolling | turboprop:bearing.power.rolling | bearing.power | support |
+| Fuselage | airframe.fuselage | turboprop:airframe.fuselage | airframe | null |
+| Cockpit & cabin glazing | airframe.cockpit | turboprop:airframe.cockpit | airframe | null |
+| Tail surfaces | airframe.tail | turboprop:airframe.tail | airframe | null |
+| Retracted gear doors | airframe.landing | turboprop:airframe.landing | airframe | null |
+| Engine pylons & mounts | airframe.mounts | turboprop:airframe.mounts | airframe | null |
+| Studied engine nacelle / cowling | airframe.nacelle | turboprop:airframe.nacelle | airframe | null |
+| Far engine · exterior context only | airframe.companion | turboprop:airframe.companion | airframe | null |
 
 ### Control, sensors & actuators
 
@@ -482,6 +495,13 @@ The catalog describes the three chosen synthetic architectures, not a universal 
 | Inner race | bearing.power.inner | turbofan:bearing.power.inner | bearing.power | support |
 | Outer race & housing | bearing.power.outer | turbofan:bearing.power.outer | bearing.power | support |
 | Rolling elements & cage | bearing.power.rolling | turbofan:bearing.power.rolling | bearing.power | support |
+| Fuselage | airframe.fuselage | turbofan:airframe.fuselage | airframe | null |
+| Cockpit & cabin glazing | airframe.cockpit | turbofan:airframe.cockpit | airframe | null |
+| Tail surfaces | airframe.tail | turbofan:airframe.tail | airframe | null |
+| Retracted gear doors | airframe.landing | turbofan:airframe.landing | airframe | null |
+| Engine pylons & mounts | airframe.mounts | turbofan:airframe.mounts | airframe | null |
+| Studied engine nacelle / cowling | airframe.nacelle | turbofan:airframe.nacelle | airframe | null |
+| Far engine · exterior context only | airframe.companion | turbofan:airframe.companion | airframe | null |
 
 ### Control, sensors & actuators
 

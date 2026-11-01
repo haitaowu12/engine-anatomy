@@ -56,6 +56,12 @@ The helicopter has a non-rotating translating lower swashplate and a rotating up
 
 ## Evidence
 
-`tests/inspection.test.mjs` verifies staging, state restoration and basic clearance. `tests/renderer.test.mjs` uses the exact pinned Three geometry with stubbed display/controls to verify all architectures, complete shaft envelopes, every leaf's real geometry, all-recipe exact restoration, isolation, camera invariants, liner through-openings and planetary kinematics. A separate SVG-shaped renderer test verifies the optional diagnostic fields and unchanged-frame cache. These checks do not establish pixel quality; current browser evidence is recorded separately in `VERIFICATION.md`.
+`tests/inspection.test.mjs` verifies staging, state restoration and basic clearance. `tests/renderer.test.mjs` uses the exact pinned Three geometry with stubbed display/controls to verify all architectures, complete shaft envelopes, every physical leaf's real geometry and absence of physical proxies for system boundaries, all-recipe exact restoration, isolation, camera invariants, liner through-openings and planetary kinematics. A separate SVG-shaped renderer test verifies the optional diagnostic fields and unchanged-frame cache. These checks do not establish pixel quality; current browser evidence is recorded separately in `VERIFICATION.md`.
 
 Primary construction context: [NASA axial compressor](https://www.grc.nasa.gov/www/k-12/VirtualAero/BottleRocket/airplane/caxial.html), [NASA combustor](https://www.grc.nasa.gov/www/k-12/BGP/burner.html), [NASA two-spool turbofan](https://www.grc.nasa.gov/www/k-12/airplane/Animation/turbtyp/etfh.html), and [FAA lubrication chapter](https://www.faa.gov/sites/faa.gov/files/08_amtp_ch6.pdf). Source artwork is not reused.
+
+## Version 4 installation context
+
+The helicopter mast/rotor/swashplate/pitch-pickup assembly shares x = −6.3, forward of the engine inlet, so the mast does not pass through the combustor. Its lower transfer shaft stays below the validated reduction envelope. The actual blade-root matrix and fixed rod-length tests continue to pass after the complete assembly translation. The new transmission fairing is an original airframe context surface rather than a moving shaft component.
+
+Engine-side service items use shared installed anchors for geometry, labels, diagrams and inspection. Filter focus chooses the actual mounting side; a ray through its anchor must first encounter the selected filter, rather than the engine casing. The physical focus/inspection controls are unavailable for diagram-only aircraft boundaries. Whole-aircraft view defaults to closed covers, while the engine and aircraft views retain separate explicit cutaway preferences.

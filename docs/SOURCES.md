@@ -50,3 +50,7 @@ Inter and Space Grotesk are locally bundled under the SIL Open Font License 1.1.
 | Geometry fallback | Official pinned Three 0.180.0 SVGRenderer and Projector source | MIT, locally bundled; original instance-expansion adapter and scene; limited vector shading is explicit |
 
 All added educational explanations are original paraphrases. The source documents are linked rather than bundled. Hardware geometry, diagram assets, material settings and the procedural environment are original.
+
+## Version 4 installation and representation corrections
+
+[NASA Glenn: airplane parts and function](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/airplane-parts-function/) supports the distinct structural/aerodynamic roles of fuselage, wings and stabilizers and the existence of different possible aircraft configurations. Original lofted bodies, airfoil sections, glazing, tails, pylons and landing context are authored in `src/airframe-geometry.js`; none is a manufacturer replica or a downloaded source asset. The FAA helicopter, fuel, lubrication, electrical and starting sources above remain the basis for qualified engine/aircraft boundaries. Exact accessory mounting positions, body dimensions and the far exterior engine pod are explicitly explanatory. Only the near engine has a numerical plant. A 2D topology diagram preserves the aircraft interfaces without fabricating a physical object for pilot demand or command information.

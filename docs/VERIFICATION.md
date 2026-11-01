@@ -3,7 +3,11 @@
 Verification checks properties of the declared synthetic equations, graph and implementation. It does not establish fidelity to a measured engine, certified controller or aircraft. Numerical checks and visual/mechanical inspection are separate evidence.
 
 
-## Version 3 current evidence (2026-11-01)
+## Version 4 correction evidence (2026-11-01)
+
+See [REVISION-4.md](REVISION-4.md) for the reviewed routes and corrected concepts, and [COMPONENT-REVIEW.md](COMPONENT-REVIEW.md) for the full representation/motion inventory. The exact-geometry suite adds absence of fake aircraft-interface hardware, bounded installed-service locations, hidden distant context, real mirrored/thick airfoil wings, tapered fuselages, paired tailplanes/pylons and mast/core clearance. A new representation suite preserves every diagram boundary, circuit branch, public source and walkthrough identity. The complete local suite passes in nine test files, with 85 individual cases (28 real-renderer geometry cases, 11 actual-Projector/skin/cowl cases and three representation cases). The new skin regressions compare actual painter output with real nearest-surface ray intersections, check both detail budgets for reverse-face rejection, and verify bounded exhaust openings. Helicopter installation tests additionally gate lateral-exhaust/reduction clearance and tail-shaft containment in the tapered boom. Existing deterministic plants and physical mechanism gates remain required. Browser evidence for this release is kept in `audit-4/`; the deployment owner records final observed acceptance against its build ID. The managed browser has no WebGL, so material/reflection/shadow appearance on hardware WebGL remains outside this run's visual evidence.
+
+## Historical version 3 evidence (2026-11-01)
 
 The source implements the detailed anatomy/inspection release from baseline `a7640c6cd5bd167188d658a13cbfc8b1dd65934c`. Current real-geometry tests use the exact pinned `three@0.180.0` and stub the display/controls. They do not render pixels. The managed browser reports no WebGL; current visible acceptance uses the actual-geometry SVG backend, with its renderer status shown. Do not reuse the historical Apple M2 Pro evidence below as acceptance for the changed version 3 materials or geometry.
 
