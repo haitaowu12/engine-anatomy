@@ -1,19 +1,18 @@
 import * as T from 'three';
+import {ColorfiguresRenderer} from './colorfigures-renderer.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {buildH175Model} from './h175-model.js';
 import {initialH175State} from './h175-state.js';
 
 export async function createH175Viewer(host,{onSelect=()=>{}}={}){
- let renderer,backend='WebGL';
- try{renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'default'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;}
- catch{const {SVGRenderer}=await import('three/addons/renderers/SVGRenderer.js');renderer=new SVGRenderer();renderer.setQuality('low');renderer.setPrecision(2);backend='SVG';}
+ const renderer=new ColorfiguresRenderer(),backend='Colorfigures';
  renderer.setClearColor(0xe3dfd3,1);renderer.domElement.setAttribute('aria-label','Original interactive mechanical study of the LEGO Technic H175. Mechanism buttons and camera controls provide a keyboard alternative.');renderer.domElement.setAttribute('role','img');host.replaceChildren(renderer.domElement);host.dataset.renderer=backend;
  const scene=new T.Scene(),camera=new T.OrthographicCamera(-60,60,35,-35,.1,400),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=backend==='WebGL';controls.dampingFactor=.12;controls.enablePan=true;controls.minZoom=.45;controls.maxZoom=5;controls.minPolarAngle=.04;controls.maxPolarAngle=Math.PI*.88;
  scene.add(new T.HemisphereLight(0xfffbef,0x8b7e67,backend==='WebGL'?1.9:.55));
  for(const [color,p,intensity]of [[0xfff7e5,[-24,52,35],3.1],[0xe4eeff,[25,30,-30],1.8],[0xffffff,[-35,15,-12],.7]]){const l=new T.DirectionalLight(color,backend==='WebGL'?intensity:intensity*.23);l.position.set(...p);if(backend==='WebGL'&&intensity>3){l.castShadow=true;l.shadow.mapSize.set(2048,2048);Object.assign(l.shadow.camera,{left:-55,right:55,top:55,bottom:-45,near:1,far:140});l.shadow.normalBias=.04;l.shadow.bias=-.0002;}scene.add(l);}
  const floor=new T.Mesh(new T.PlaneGeometry(220,180),new T.MeshStandardMaterial({color:0xe3dfd3,roughness:.88,metalness:0}));floor.rotation.x=-Math.PI/2;floor.position.y=.55;floor.receiveShadow=true;floor.visible=backend==='WebGL';scene.add(floor);
  const shadow=new T.Mesh(new T.CircleGeometry(1,48),new T.MeshBasicMaterial({color:0x9f9b8f,transparent:true,opacity:backend==='WebGL'?.07:.16,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.scale.set(34,9,1);shadow.position.set(7,.6,0);scene.add(shadow);
- const model=buildH175Model({economy:backend==='SVG'});scene.add(model.root);let state=initialH175State(),view='whole',cameraMode='iso',widthSpan=110,dirty=true,lastKey='',lastDraw=0;
+ const model=buildH175Model({economy:backend==='Colorfigures'});scene.add(model.root);let state=initialH175State(),view='whole',cameraMode='iso',widthSpan=110,dirty=true,lastKey='',lastDraw=0;
  const lightRig=new T.Group();scene.add(lightRig);
  let environment;
  if(backend==='WebGL'){
@@ -33,7 +32,7 @@ export async function createH175Viewer(host,{onSelect=()=>{}}={}){
   const aspect=host.clientWidth/Math.max(1,host.clientHeight),shift=new T.Vector3((min.x+max.x)/2,(min.y+max.y)/2,0).applyQuaternion(camera.quaternion);controls.target.add(shift);camera.position.add(shift);widthSpan=Math.max(max.x-min.x,(max.y-min.y)*aspect)*(view==='whole'?1.17:1.13);
   resize();controls.update();dirty=true;
  }
- function render(next=state,force=false){state=next;const now=performance.now();if(!force&&now-lastDraw<(backend==='SVG'?160:16))return;controls.update();const key=[view,...Object.entries(state).filter(([key])=>key!=='time').map(([,value])=>value),camera.zoom,...camera.position.toArray(),...controls.target.toArray(),host.clientWidth,host.clientHeight].join(':');if(!dirty&&key===lastKey)return;model.update(state,{view});floor.visible=backend==='WebGL'&&view==='whole';shadow.visible=view==='whole';renderer.render(scene,camera);lastKey=key;lastDraw=now;dirty=false;host.dataset.view=view;host.dataset.powered=String(state.motor&&state.inspection===0);host.dataset.renderedParts=String(model.pickMeshes.length);}
+ function render(next=state,force=false){state=next;const now=performance.now();if(!force&&now-lastDraw<(backend==='Colorfigures'?80:16))return;controls.update();const key=[view,...Object.entries(state).filter(([key])=>key!=='time').map(([,value])=>value),camera.zoom,...camera.position.toArray(),...controls.target.toArray(),host.clientWidth,host.clientHeight].join(':');if(!dirty&&key===lastKey)return;model.update(state,{view});floor.visible=backend==='WebGL'&&view==='whole';shadow.visible=view==='whole';renderer.render(scene,camera);lastKey=key;lastDraw=now;dirty=false;host.dataset.view=view;host.dataset.powered=String(state.motor&&state.inspection===0);host.dataset.renderedParts=String(model.pickMeshes.length);}
  controls.addEventListener('change',()=>{dirty=true;});
  const pointer=new T.Vector2(),ray=new T.Raycaster();let down;
  renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);

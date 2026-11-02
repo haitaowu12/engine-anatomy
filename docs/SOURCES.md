@@ -25,9 +25,19 @@ The product uses original explanations, original procedural geometry and declare
 | Interface typography | Inter by Rasmus Andersson and Space Grotesk by Florian Karsten, distributed through the pinned Fontsource 5.3.0 packages | SIL Open Font License 1.1; local font files and notices bundled, no external font service |
 | First-release composition reference | [Bartosz Ciechanowski: Internal Combustion Engine](https://ciechanow.ski/internal-combustion-engine/) | Spatial illustration next to explanation and explicit motion control informed composition; no prose, code, fonts or artwork reused |
 
+## Whole-aircraft proportion references
+
+The original whole-aircraft contexts use three recognizable silhouettes:
+
+- **Bell 412:** compact cabin, raised engine deck, four-blade main rotor, conventional tail boom and skids. [Bell public overview and aircraft gallery](https://www.bellflight.com/products/bell-412).
+- **Dash 8-400:** slender regional fuselage, high straight wing, paired propeller nacelles and T-tail. The [WestJet aircraft specification](https://www.westjet.com/en-ca/aircraft/dehavilland-dash-8-400) lists length 32.8 m and span 28.4 m; the model keeps that length/span relationship at an illustrative scale.
+- **737-800:** rounded transport nose, swept low wing, paired underslung nacelles and conventional tail. [Boeing airport-planning reference](https://www.boeing.com/content/dam/boeing/v2/airports/acaps/737NG_REV_C.pdf) and [WestJet aircraft reference](https://www.westjet.com/en-ca/aircraft/boeing-737-800-next-generation). The model uses an approximately 39.5:34.3 length/span relationship without winglets.
+
+These references inform the external shape. The original synthetic engines, four-blade propeller, four-blade tail rotor, simplified mounts, service routes and drivetrain remain teaching choices. The figures do not reproduce these aircraft types, their engine installations or their performance. No manufacturer image or CAD is bundled.
+
 ## Publication boundary
 
-Only original application source, original documentation and the official pinned Three.js dependency and openly licensed interface fonts enter the build. No private engine folders were reopened for either release. No employer training documents, screenshots, internal identifiers, test data, parameters or schedules are inputs to the published product. A publicly reachable document carrying a confidentiality restriction is not treated as a publishable source. Source links do not transfer artwork reuse rights.
+Original application source and documentation, the adapted MIT-licensed Colorfigures drawing code, pinned Three.js and openly licensed interface fonts enter the build. No private engine folders were reopened for either release. No employer training documents, screenshots, internal identifiers, test data, parameters or schedules are inputs to the published product. A publicly reachable document carrying a confidentiality restriction is not treated as a publishable source. Source links do not transfer artwork reuse rights.
 
 Inter and Space Grotesk are locally bundled under the SIL Open Font License 1.1. Their notices are included beside the font files. The static product has no analytics, backend, saved personal data or outbound model telemetry. Reference PDFs are not uploaded or bundled. Repository and Site credentials never enter source, build output or documentation. GitHub Pages is public. GPT Site audience and deployment are controlled and verified separately through its native hosting policy.
 

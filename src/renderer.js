@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {ColorfiguresRenderer} from './colorfigures-renderer.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GEAR} from './plants.js';
 import {placeLabels} from './labels.js';
@@ -11,9 +12,9 @@ import {inspectionAmount,inspectionOffset,hubBore,SHAFT_CLEARANCE} from './inspe
 const TAU=Math.PI*2;
 const C={cyan:0x77cde1,amber:0xe7af6c,silver:0xb0c2c6,dark:0x46606d,casing:0x7093a0,liner:0x927d6e,violet:0xb3a9ef,green:0x80b89d,white:0xc9d6d4};
 export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
- const scene=new T.Scene(),renderer=rendering.renderer??new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:'default'});
+ const scene=new T.Scene(),renderer=rendering.renderer??new ColorfiguresRenderer();
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.65));renderer.setClearColor(0,0);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;host.append(renderer.domElement);
- const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info');host.dataset.gpu=renderer.isSVGRenderer?'SVG projection of original geometry · no WebGL':debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):'WebGL (details unavailable)';
+ const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info');host.dataset.renderer=renderer.isColorfiguresRenderer?'colorfigures':'test';host.dataset.gpu=renderer.isColorfiguresRenderer?'Colorfigures illustrated geometry':renderer.isSVGRenderer?'SVG projection of original geometry · no WebGL':debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):'WebGL (details unavailable)';
  renderer.domElement.setAttribute('aria-label','Original interactive engine and airframe. Component tree and HTML camera controls provide keyboard access.');
  const camera=new T.OrthographicCamera(-10,10,6,-6,.1,200),controls=rendering.createControls?.(camera,renderer.domElement)??new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.1;controls.minZoom=.45;controls.maxZoom=6;controls.minPolarAngle=.08;controls.maxPolarAngle=Math.PI*.92;
  scene.add(new T.HemisphereLight(0xe3f4ff,0x29252a,1.3));
@@ -100,18 +101,18 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
  function forceArrow(id,start,end,color){const curve=[new T.Vector3(...start),new T.Vector3(...end)];const arrow=new T.ArrowHelper(curve[1].clone().sub(curve[0]).normalize(),curve[0],curve[0].distanceTo(curve[1]),color,.5,.25);arrow.traverse(o=>{o.userData.id=id;});part(id).add(arrow);forceArrows.push(arrow);return arrow;}
  function buildAirframe(){const k=manifest.kind;buildAirframeGeometry({T,C,mesh,cylinder,pipe,box,lowDetail:renderer.isSVGRenderer},manifest);
   if(k==='helicopter'){
-   const mx=AIRFRAME_LAYOUT.helicopter.mastX;
+   const {mastX:mx,tailX,rotorRadius}=AIRFRAME_LAYOUT.helicopter;
    cylinder('reduction',[5.62,0,0],[6.3,0,0],.1,C.amber);cylinder('reduction',[6.3,0,0],[6.3,-2.5,0],.1,C.amber);gear('reduction',[6.3,-2.5,0],.42,'y','p',GEAR.helicopterMain);
    cylinder('mast',[6.3,-2.5,0],[mx,-2.5,0],.14,C.amber);gear('mast',[mx,-2.5,0],.65,'y','p',GEAR.helicopterMain);cylinder('mast',[mx,-2.5,0],[mx,6.4,0],.16,C.amber);
    gear('tail.stepup',[.8,-2.5,0],.64,'x','p',GEAR.helicopterMain,48);gear('tail.stepup',[.8,-2.5,-.8],.16,'x','p',-GEAR.helicopterTail,12);
    // The input needs its offset to clear the slower main-drive shaft. A short
    // two-joint offset section then centers the long shaft in the tapering boom.
    // Joint geometry is schematic; the plant retains an ideal constant ratio.
-   const tailRoute=[[.8,-2.5,-.8],[6.5,-2.5,-.8],[7.5,-2.5,0],[29,-2.5,0],[29,-2.5,1.5]];
+   const tailRoute=[[.8,-2.5,-.8],[6.5,-2.5,-.8],[7.5,-2.5,0],[tailX,-2.5,0],[tailX,-2.5,1.5]];
    for(let i=0;i<tailRoute.length-1;i++){const from=tailRoute[i],to=tailRoute[i+1],radius=i===3?.1:.095,shaft=cylinder('tail.drive',from,to,radius,C.amber);shaft.userData.tailDriveSegment={from,to,radius};}
    for(const at of tailRoute.slice(1,3)){const joint=ellipsoid('tail.drive',at,[.14,.14,.14],C.silver);joint.userData.tailDriveSegment={joint:true,at};}
-   gear('tail.drive',[29,-2.5,0],.3,'x','p',-GEAR.helicopterTail);
-   aerodynamicRotor('rotor',[mx,6.4,0],15,4,'y',GEAR.helicopterMain);aerodynamicRotor('tail.rotor',[29,-2.5,1.5],2.4,4,'z',-GEAR.helicopterTail);
+   gear('tail.drive',[tailX,-2.5,0],.3,'x','p',-GEAR.helicopterTail);
+   aerodynamicRotor('rotor',[mx,6.4,0],rotorRadius,4,'y',GEAR.helicopterMain);aerodynamicRotor('tail.rotor',[tailX,-2.5,1.5],2.4,4,'z',-GEAR.helicopterTail);
    forceArrow('rotor',[mx,6.5,0],[mx,10,0],C.green);
   }else{
    const prop=k==='turboprop',body=prop?[8,.6,-8.8]:[8,3.4,-10];
@@ -275,17 +276,17 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
    const min=new T.Vector2(Infinity,Infinity),max=new T.Vector2(-Infinity,-Infinity);
    for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z]){const p=new T.Vector3(x,y,z).applyMatrix4(camera.matrixWorldInverse);min.x=Math.min(min.x,p.x);min.y=Math.min(min.y,p.y);max.x=Math.max(max.x,p.x);max.y=Math.max(max.y,p.y);}
    span=Math.max(5,(max.y-min.y)*1.45,(max.x-min.x)/(host.clientWidth/host.clientHeight)*1.4);camera.zoom=1;resize();controls.update();
-  },setQuality(value){quality=['auto','detail','economy'].includes(value)?value:'auto';renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='economy'?1:quality==='detail'?2:1.65));if(renderer.shadowMap)renderer.shadowMap.enabled=quality!=='economy';host.dataset.quality=quality;resize();},setEventHighlight(id){eventNode=id;updateStyles();},
+  },setQuality(value){renderer.setQuality?.(value);quality=['auto','detail','economy'].includes(value)?value:'auto';renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='economy'?1:quality==='detail'?2:1.65));if(renderer.shadowMap)renderer.shadowMap.enabled=quality!=='economy';host.dataset.quality=quality;resize();},setEventHighlight(id){eventNode=id;updateStyles();},
   returnView(){if(savedFocus){restore(savedFocus);savedFocus=null;host.dataset.focused='false';}},resetCamera(){setPreset(preset);},
   orbit(a){const p=camera.position.clone().sub(controls.target).applyAxisAngle(new T.Vector3(0,1,0),a);camera.position.copy(controls.target).add(p);controls.update();},zoom(f){camera.zoom=T.MathUtils.clamp(camera.zoom*f,.45,6);camera.updateProjectionMatrix();},
-  render(s,d,u,reduced){const now=globalThis.performance?.now()??Date.now();if((renderer.isWebGLRenderer||renderer.isSVGRenderer)&&now-lastDraw<(renderer.isSVGRenderer?(quality==='economy'?250:125):quality==='economy'?1000/30:0))return;lastDraw=now;currentState=s;currentD=d;currentU=u;
+  render(s,d,u,reduced){const now=globalThis.performance?.now()??Date.now();if((renderer.isWebGLRenderer||renderer.isSVGRenderer)&&now-lastDraw<(renderer.isSVGRenderer?(quality==='economy'?250:renderer.isColorfiguresRenderer?50:125):quality==='economy'?1000/30:0))return;lastDraw=now;currentState=s;currentD=d;currentU=u;
    for(const r of rotations)r.object.rotation[r.axis]=(reduced?0:r.shaft==='g'?s.angleG:s.angleP)/250/r.ratio;
    for(const p of pitchLinks)p.object.position.x=p.base+(d.bladeAngle??12)*.0015;
    for(const f of serviceFlows){f.marker.visible=overlay==='services'&&(f.name===circuit||(circuit==='oil'&&f.name==='breather'))&&!inspection&&!isolate;const phase=reduced?.5:(s.t*.15+f.offset)%1;f.marker.position.copy(f.curve.getPoint(phase));f.marker.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),f.curve.getTangent(phase));}
    for(const b of pitchBlades)b.object.rotation[b.axis]=(b.kind==='tail.rotor'?12:d.bladeAngle??12)*Math.PI/180;root.updateMatrixWorld(true);for(const update of mechanismUpdates)update(d);
    for(const m of markers){const a=(reduced?0:m.shaft==='g'?s.angleG:s.angleP)/250;m.object.position.y=Math.cos(a)*m.r;m.object.position.z=Math.sin(a)*m.r;m.object.rotation.x=a;}
    for(const f of flowParticles){for(let i=0;i<45;i++){const phase=(i/45+(reduced?0:f.bypass?s.bypassPhase:s.flowPhase))%1;const v=f.curve.getPoint(phase);v.z+=(i%3-1)*.1;dummy.position.copy(v);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();f.particles.setMatrixAt(i,dummy.matrix);}f.particles.instanceMatrix.needsUpdate=true;}
-   controls.update();scene.updateMatrixWorld();camera.updateMatrixWorld();const frameKey=[manifest.kind,reduced?0:s.angleG,reduced?0:s.angleP,reduced?0:s.flowPhase,reduced?0:s.t,Math.round((d.bladeAngle??0)*1000)/1000,selected,eventNode,overlay,preset,isolate,shaftTrace,cutaway,inspection,recipe,circuit,quality,host.clientWidth,host.clientHeight,camera.zoom,...camera.position.toArray(),...controls.target.toArray()].join(':');if(renderer.isSVGRenderer&&frameKey===lastVectorFrame)return;lastVectorFrame=frameKey;const candidates=[];
+   controls.update();scene.updateMatrixWorld();camera.updateMatrixWorld();const frameKey=[manifest.kind,reduced?0:s.angleG,reduced?0:s.angleP,reduced?0:s.flowPhase,reduced?0:s.t,Math.round((d.bladeAngle??0)*10)/10,selected,eventNode,overlay,preset,isolate,shaftTrace,cutaway,inspection,recipe,circuit,quality,host.clientWidth,host.clientHeight,camera.zoom,...camera.position.toArray(),...controls.target.toArray()].join(':');if(renderer.isSVGRenderer&&frameKey===lastVectorFrame)return;lastVectorFrame=frameKey;const candidates=[];
    for(const [id,pin,priority]of [[selected,info,2],[eventNode,eventPin,3]]){const n=manifest.nodes.find(n=>n.id===id);pin.hidden=!isPhysicalNode(n)||isolate||preset==='aircraft'||(pin===eventPin&&id===selected);if(pin.hidden)continue;const world=nodeAnchor(n);tempV.copy(world).project(camera);const x=(tempV.x*.5+.5)*host.clientWidth,y=(-tempV.y*.5+.5)*host.clientHeight;raycaster.setFromCamera(new T.Vector2(tempV.x,tempV.y),camera);const targetDistance=world.distanceTo(raycaster.ray.origin);const blocked=raycaster.intersectObjects(meshes,false).some(h=>{if(h.distance>=targetDistance-.05||h.object.material.opacity<.6||descendants(manifest,id).has(h.object.userData.id))return false;let o=h.object;while(o&&o!==root){if(!o.visible)return false;o=o.parent;}return true;});candidates.push({id,pin,priority,x,y,anchorX:x,anchorY:y,width:Math.min(260,n.name.length*7+35),height:30,blocked,name:n.name});}
    const placed=placeLabels(candidates,host.clientWidth,host.clientHeight);for(const item of candidates)if(!placed.some(p=>p.id===item.id))item.pin.hidden=true;let leaders='';for(const item of placed){item.pin.style.left=item.x+'px';item.pin.style.top=item.y+'px';item.pin.style.width=item.width+'px';item.pin.textContent=(item.pin===eventPin?'STEP · ':'')+item.name+(item.offscreen?' · Focus →':item.blocked?' · behind context':'');if(!item.offscreen)leaders+=`<path d="M${item.x} ${item.y+15}L${item.anchorX} ${item.anchorY}" class="${item.blocked?'occluded':''}"/><circle cx="${item.anchorX}" cy="${item.anchorY}" r="2"/>`;}
    leader.setAttribute('viewBox',`0 0 ${host.clientWidth} ${host.clientHeight}`);leader.innerHTML=leaders;
