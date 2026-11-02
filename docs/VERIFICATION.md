@@ -3,6 +3,14 @@
 Verification checks properties of the declared synthetic equations, graph and implementation. It does not establish fidelity to a measured engine, certified controller or aircraft. Numerical checks and visual/mechanical inspection are separate evidence.
 
 
+## Illustrated surface visibility — 5.0.2
+
+The illustrated renderer uses plane separation and a stable topological order for broad overlapping surfaces. Camera near-plane clipping preserves the visible portion of a face instead of dropping it when one corner passes the camera. An unchanged scene reuses its drawing order. The three-tone palette, meaningful boundary ink, semantic geometry, picking and inspection controls are retained.
+
+Visibility sampling covers 54 engine camera/state combinations (three architectures, installed/section/aircraft, closed/cutaway, and three camera directions) and 18 H175 view/state combinations. New renderer regressions check physical foreground from both sides of a broad surface after camera/part motion, plus near-plane clipping on canvas and SVG outputs. Existing mechanical, aircraft-skin, inspection and plant checks remain required.
+
+Plane ordering does not resolve every coplanar overlap or intersection in a painter renderer. These finite samples do not establish exact visibility at every possible orbit or zoom.
+
 ## Version 5 correction and H175 evidence (2026-11-01)
 
 The complete `npm test` gate passes all 12 test files. [REVISION-5.md](REVISION-5.md) records the source baseline, concrete defects, accepted browser journeys and captures in `audit-5/`. [H175-STUDY.md](H175-STUDY.md) records the separate construction-toy study's sources, authored mechanism assumptions and verification.

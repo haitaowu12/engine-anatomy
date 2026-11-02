@@ -38,3 +38,58 @@ test('retained drawing paths update with camera, selection material, geometry an
  }
  mesh.visible=false;r.render(scene,c);assert.equal(r.info.render.faces,0);assert.equal(r.domElement.innerHTML,'');
 });
+
+function fillAt(svg,x,y){
+ let result;
+ for(const match of svg.matchAll(/<path d="([^"]+)" fill="(#[a-f0-9]+)"/g)){
+  let inside=false;
+  for(const subpath of match[1].split('M').filter(Boolean)){
+   const values=subpath.match(/-?\d+(?:\.\d+)?/g).map(Number),points=[];
+   for(let i=0;i<values.length;i+=2)points.push([values[i],values[i+1]]);
+   for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const [a,b]=points[i],[c,d]=points[j];
+    if((b>y)!==(d>y)&&x<(c-a)*(y-b)/(d-b)+a)inside=!inside;
+   }
+  }
+  if(inside)result=match[2];
+ }
+ return result;
+}
+
+test('broad surfaces preserve physical occlusion from both sides after camera and part motion',()=>{
+ const scene=new T.Scene(),group=new T.Group();scene.add(group);
+ const floor=new T.Mesh(new T.BoxGeometry(12,.2,8),new T.MeshBasicMaterial({color:0x0000ff}));
+ const part=new T.Mesh(new T.BoxGeometry(.8,.8,.8),new T.MeshBasicMaterial({color:0xff0000}));
+ group.add(floor,part);const r=new ColorfiguresRenderer({raster:false});r.setQuality('detail');r.setSize(800,600);
+ for(const rotation of [0,Math.PI/2])for(const perspective of [false,true])for(const y of [7,-7]){
+  group.rotation.x=rotation;
+  const c=perspective?new T.PerspectiveCamera(38,4/3,.1,100):new T.OrthographicCamera(-8,8,6,-6,.1,100);
+  c.position.set(8,y,9).applyAxisAngle(new T.Vector3(1,0,0),rotation);c.lookAt(0,0,0);c.updateMatrixWorld(true);
+  for(const height of [.7,-.7,.7]){
+   part.position.set(-3,height,-2);group.updateMatrixWorld(true);
+   r.render(scene,c);const point=part.getWorldPosition(new T.Vector3()).project(c),ray=new T.Raycaster();
+   ray.setFromCamera(new T.Vector2(point.x,point.y),c);const hit=ray.intersectObjects([floor,part],false)[0];
+   const color=fillAt(r.domElement.innerHTML,(point.x+1)*400,(1-point.y)*300);
+   assert(color,'the projected target must be painted');
+   const red=parseInt(color.slice(1,3),16)>parseInt(color.slice(5,7),16);
+   assert.equal(red,hit.object===part,`physical foreground disagrees at rotation ${rotation}, height ${height}, camera ${y}, perspective ${perspective}`);
+  }
+ }
+ r.dispose();
+});
+
+test('approaching a face clips its near corner without dropping the visible surface or ink',()=>{
+ const scene=new T.Scene(),mesh=new T.Mesh(new T.PlaneGeometry(8,5),new T.MeshBasicMaterial({color:0xff0000,side:T.DoubleSide}));
+ mesh.rotation.y=Math.PI/3;scene.add(mesh);
+ const c=new T.PerspectiveCamera(45,4/3,.25,30);c.position.set(0,0,2);c.lookAt(0,0,0);
+ for(const raster of [false,true]){
+  const r=new ColorfiguresRenderer({raster});r.setQuality('detail');r.setSize(800,600);r.render(scene,c);
+  if(raster)assert(r.context.fills>0,'visible geometry must reach the canvas');
+  else{
+   assert(!/NaN|Infinity/.test(r.domElement.innerHTML));
+   const color=fillAt(r.domElement.innerHTML,400,300);
+   assert(color&&parseInt(color.slice(1,3),16)>0,'the surface intersected by the central ray must remain painted');
+  }
+  r.dispose();
+ }
+});

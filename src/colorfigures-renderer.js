@@ -1,3 +1,4 @@
+import {orderFaces} from './face-order.js';
 import * as T from 'three';
 import {matOf,step3,sp,fill,ink,hull} from './colorfigures-core.js';
 
@@ -61,25 +62,48 @@ export class ColorfiguresRenderer {
     this.domElement.setAttribute('role','img');this.domElement.setAttribute('xmlns',NS);
     this.shadowMap={enabled:false};this.info={render:{calls:0,faces:0,triangles:0},memory:{geometries:0}};
     this.width=800;this.height=600;this.cache=new WeakMap();this.drawCache=new WeakMap();this.palettes=new Map();
-    this.background='#f4f1e8';this.quality='auto';
+    this.orderCache=null;this.orderGraph={};this.background='#f4f1e8';this.quality='auto';
   }
   setSize(width,height){this.width=Math.max(1,width);this.height=Math.max(1,height);if(this.raster){const w=Math.round(this.width*this.pixelRatio),h=Math.round(this.height*this.pixelRatio);if(this.domElement.width!==w)this.domElement.width=w;if(this.domElement.height!==h)this.domElement.height=h;}else this.domElement.setAttribute('viewBox',`0 0 ${this.width} ${this.height}`);}
   setPixelRatio(value){this.pixelRatio=Math.min(2,value||1);this.setSize(this.width,this.height);}
   setClearColor(){}
   setQuality(value){this.quality=value;}
   getContext(){return {getExtension:()=>null};}
-  dispose(){this.disposed=true;this.cache=new WeakMap();this.drawCache=new WeakMap();this.domElement.replaceChildren();}
+  dispose(){this.disposed=true;this.orderCache=null;this.orderGraph={};this.cache=new WeakMap();this.drawCache=new WeakMap();this.domElement.replaceChildren();}
   render(scene,camera){
     if(this.disposed)return;
-    const started=performance.now(),materials=new Map(),parts=[],matrix=new T.Matrix4(),view=new T.Matrix4(),project=new T.Matrix4(),normalMatrix=new T.Matrix3();
+    const started=performance.now(),materials=new Map(),matrix=new T.Matrix4(),view=new T.Matrix4(),project=new T.Matrix4(),normalMatrix=new T.Matrix3();
+    let parts=[];
     const instance=new T.Matrix4(),n=new T.Vector3(),color=new T.Color();let faceCount=0,meshCount=0;
     scene.updateMatrixWorld();camera.updateMatrixWorld();
-    const projectVertices=(vertices,mvp,mv)=>vertices.map(p=>{
-      const [x,y,z]=p,e=mvp.elements,v=mv.elements,w=e[3]*x+e[7]*y+e[11]*z+e[15];
+    const projectVertices=(vertices,mvp,mv,world)=>vertices.map(p=>{
+      const [x,y,z]=p,e=mvp.elements,v=mv.elements,g=world.elements,w=e[3]*x+e[7]*y+e[11]*z+e[15];
       return [(e[0]*x+e[4]*y+e[8]*z+e[12])/w*this.width/2+this.width/2,
         -(e[1]*x+e[5]*y+e[9]*z+e[13])/w*this.height/2+this.height/2,
-        v[2]*x+v[6]*y+v[10]*z+v[14],w,(e[2]*x+e[6]*y+e[10]*z+e[14])/w];
+        v[2]*x+v[6]*y+v[10]*z+v[14],w,(e[2]*x+e[6]*y+e[10]*z+e[14])/w,
+        g[0]*x+g[4]*y+g[8]*z+g[12],g[1]*x+g[5]*y+g[9]*z+g[13],g[2]*x+g[6]*y+g[10]*z+g[14]];
     });
+    // Clip in view space before projection. Dropping a whole face when one
+    // corner crosses the near plane makes floors and casings disappear on zoom.
+    const nearPoint=(a,b)=>{
+      const t=(-camera.near-a[2])/(b[2]-a[2]),p=a.map((v,i)=>v+(b[i]-v)*t);
+      n.set(p[5],p[6],p[7]).project(camera);
+      p[0]=(n.x+1)*this.width/2;p[1]=(1-n.y)*this.height/2;p[4]=n.z;return p;
+    };
+    const clipNear=loop=>{
+      const result=[];
+      for(let i=0,j=loop.length-1;i<loop.length;j=i++){
+        const a=loop[j],b=loop[i],ain=a[2]<=-camera.near,bin=b[2]<=-camera.near;
+        if(ain!==bin)result.push(nearPoint(a,b));
+        if(bin)result.push(b);
+      }
+      return result;
+    };
+    const boundsOf=points=>{
+      const rect=[Infinity,Infinity,-Infinity,-Infinity];
+      for(const p of points){rect[0]=Math.min(rect[0],p[0]);rect[1]=Math.min(rect[1],p[1]);rect[2]=Math.max(rect[2],p[0]);rect[3]=Math.max(rect[3],p[1]);}
+      return rect;
+    };
     const materialColor=material=>{
       if(materials.has(material))return materials.get(material);
       color.copy(material.color||new T.Color(0xb5c4c6));
@@ -92,15 +116,15 @@ export class ColorfiguresRenderer {
       view.multiplyMatrices(camera.matrixWorldInverse,world);project.multiplyMatrices(camera.projectionMatrix,view);
       if(object.isLine){
         const attr=object.geometry.getAttribute('position');if(!attr?.count)return;
-        const verts=Array.from({length:attr.count},(_,i)=>[attr.getX(i),attr.getY(i),attr.getZ(i)]),points=projectVertices(verts,project,view),mat=object.material;
+        const verts=Array.from({length:attr.count},(_,i)=>[attr.getX(i),attr.getY(i),attr.getZ(i)]),points=projectVertices(verts,project,view,world),mat=object.material;
         const pieces=[];for(let i=0;i+1<points.length;i+=object.isLineSegments?2:1){const a=points[i],b=points[i+1];if(a[3]<=0||b[3]<=0||a[4]<-1||b[4]<-1)continue;pieces.push(`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`);}
         if(pieces.length)parts.push({depth:mat.depthTest===false?Infinity:points.reduce((sum,p)=>sum+p[2],0)/points.length,order:object.renderOrder,
-          path:pieces.join(''),line:true,stroke:'#'+mat.color.getHexString(T.SRGBColorSpace),width:mat.linewidth||1,opacity:mat.opacity??1,dash:mat.isLineDashedMaterial});return;
+          points,loops:[],bounds:boundsOf(points),path:pieces.join(''),line:true,stroke:'#'+mat.color.getHexString(T.SRGBColorSpace),width:mat.linewidth||1,opacity:mat.opacity??1,dash:mat.isLineDashedMaterial});return;
       }
       if(!object.isMesh)return;
       let cached=this.cache.get(object.geometry);const attribute=object.geometry.getAttribute('position');if(!attribute)return;
       if(!cached||cached.version!==attribute.version||cached.indexVersion!==object.geometry.index?.version){cached={...prepareColorfiguresGeometry(object.geometry),version:attribute.version,indexVersion:object.geometry.index?.version};this.cache.set(object.geometry,cached);}
-      meshCount++;const pts=projectVertices(cached.vertices,project,view);normalMatrix.getNormalMatrix(view);
+      meshCount++;const pts=projectVertices(cached.vertices,project,view,world);normalMatrix.getNormalMatrix(view);
       if(!pts.some(p=>p[3]>0&&p[4]>=-1&&p[4]<=1))return;
       const minX=Math.min(...pts.map(p=>p[0])),maxX=Math.max(...pts.map(p=>p[0])),minY=Math.min(...pts.map(p=>p[1])),maxY=Math.max(...pts.map(p=>p[1]));
       if(maxX<0||minX>this.width||maxY<0||minY>this.height)return;
@@ -108,7 +132,7 @@ export class ColorfiguresRenderer {
       if(Math.max(maxX-minX,maxY-minY)<smallLimit&&!Array.isArray(object.material)){
         const mat=object.material,outline=hull(pts.map(p=>[p[0],p[1]])),path=sp(outline),opacity=mat.opacity??1;
         parts.push({depth:pts.reduce((sum,p)=>sum+p[2],0)/pts.length,order:object.renderOrder,
-          path,shade:materialColor(mat).m,opacity,edges:path,width:.55});faceCount++;return;
+          points:pts,loops:[outline],bounds:boundsOf(pts),path,shade:materialColor(mat).m,opacity,edges:path,width:.55});faceCount++;return;
       }
       const normals=cached.faces.map(face=>face.normal.clone().applyMatrix3(normalMatrix).normalize());
       const facing=cached.faces.map((face,i)=>{
@@ -118,20 +142,31 @@ export class ColorfiguresRenderer {
       for(let i=0;i<cached.faces.length;i++){
         const face=cached.faces[i],mat=Array.isArray(object.material)?object.material[face.material]:object.material;
         if(!mat||mat.visible===false||mat.opacity<.015||mat.side===T.FrontSide&&!facing[i]||mat.side===T.BackSide&&facing[i])continue;
-        if(face.vertices.some(id=>pts[id][3]<=0||pts[id][4]<-1))continue;
-        const loops=face.loops.map(loop=>loop.map(id=>pts[id]));if(!loops.length)continue;
+        const crossesNear=face.vertices.some(id=>pts[id][2]>-camera.near);
+        let loops=face.loops.map(loop=>loop.map(id=>pts[id]));
+        if(crossesNear)loops=loops.map(clipNear).filter(loop=>loop.length>=3);
+        if(!loops.length)continue;
         const depth=face.vertices.reduce((sum,id)=>sum+pts[id][2],0)/face.vertices.length;
         const norm=normals[i],sign=facing[i]?1:-1,light=sign*(-.35*norm.x+.55*norm.y+.76*norm.z);
         const shade=step3(light>.58?1:light>.04?.3:-1,.62,.12,materialColor(mat)),path=loops.map(loop=>sp(loop)).join('');
         let edges='';
         for(const edge of face.edges){const others=edge.neighbors.filter(j=>j!==i);
           if(!others.length||others.some(j=>facing[i]!==facing[j]||norm.dot(normals[j])<EDGE_COS)){
-            const a=pts[edge.a],b=pts[edge.b];if(Math.hypot(a[0]-b[0],a[1]-b[1])>.6)edges+=`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+            let a=pts[edge.a],b=pts[edge.b];
+            if(a[2]>-camera.near&&b[2]>-camera.near)continue;
+            if(a[2]>-camera.near)a=nearPoint(a,b);else if(b[2]>-camera.near)b=nearPoint(a,b);
+            if(Math.hypot(a[0]-b[0],a[1]-b[1])>.6)edges+=`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
           }
         }
-        const opacity=mat.opacity??1;
+        const opacity=mat.opacity??1,points=loops.flat();
+        // Floors, roofs, walls and enclosure panels need plane constraints.
+        // Curved/bladed meshes retain facet-depth sorting so rotating machinery
+        // does not compare every blade facet with every other blade facet.
+        const panel=['BoxGeometry','ExtrudeGeometry','PlaneGeometry'].includes(object.geometry.type);
+        let plane=null;
+        if(panel){const q=norm.clone().transformDirection(camera.matrixWorld),p=points[0];plane=[q.x,q.y,q.z,-q.x*p[5]-q.y*p[6]-q.z*p[7]];}
         parts.push({depth:mat.depthTest===false?Infinity:depth,order:object.renderOrder,
-          path,shade,opacity,edges,width:.65});faceCount++;
+          points,loops,plane,bounds:boundsOf(points),path,shade,opacity,edges,width:.65});faceCount++;
       }
     };
     // Retain projected paths while the camera, material and geometry are
@@ -155,7 +190,13 @@ export class ColorfiguresRenderer {
       if(object.isInstancedMesh){for(let i=0;i<object.count;i++){object.getMatrixAt(i,instance);matrix.multiplyMatrices(object.matrixWorld,instance);submit(object,matrix,i);}}
       else if(object.isMesh||object.isLine)submit(object,object.matrixWorld);
     });
-    parts.sort((a,b)=>a.order-b.order||a.depth-b.depth);
+    // Reuse the proved drawing order when all submitted paths are unchanged.
+    const previous=this.orderCache;
+    if(previous&&previous.submitted.length===parts.length&&parts.every((p,i)=>p===previous.submitted[i]))parts=previous.ordered;
+    else{
+      const submitted=parts.slice();orderFaces(parts,camera,this.width,this.height,this.orderGraph);
+      this.orderCache={submitted,ordered:parts};
+    }
     if(this.raster){
       // Colorfigures path data is painted directly to a 2D surface. A dense
       // engine has tens of thousands of facets; a live SVG DOM or SVG-image
