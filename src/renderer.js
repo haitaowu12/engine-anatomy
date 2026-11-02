@@ -5,6 +5,7 @@ import {placeLabels} from './labels.js';
 import {buildDetailGeometry} from './detail-geometry.js';
 import {buildAirframeGeometry,AIRFRAME_LAYOUT} from './airframe-geometry.js';
 import {isPhysicalNode} from './installation.js';
+import {bevelledBox,flangeGeometry} from './precision-geometry.js';
 import {descendants,ancestors} from './anatomy.js';
 import {inspectionAmount,inspectionOffset,hubBore,SHAFT_CLEARANCE} from './inspection.js';
 const TAU=Math.PI*2;
@@ -28,7 +29,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
  const info=document.createElement('button');info.className='scene-pin';info.addEventListener('click',()=>focusSelected());host.append(info);const eventPin=document.createElement('button');eventPin.className='scene-pin event-pin';eventPin.hidden=true;eventPin.addEventListener('click',()=>{if(eventNode)onSelect(eventNode);});host.append(eventPin);
  const leader=document.createElementNS('http://www.w3.org/2000/svg','svg');leader.classList.add('scene-leaders');leader.setAttribute('aria-hidden','true');host.append(leader);
  const tempV=new T.Vector3(),dummy=new T.Object3D();
- const mat=(color,extra={})=>new T.MeshStandardMaterial({color,metalness:color===C.white?.12:color===C.liner?.68:color===C.silver?.82:.55,roughness:color===C.liner?.68:color===C.silver?.28:color===C.dark?.52:.39,envMapIntensity:.7,...extra});
+ const mat=(color,extra={})=>new T.MeshStandardMaterial({color,metalness:color===C.white?.06:color===C.liner?.68:color===C.silver?.82:color===C.casing?.28:.18,roughness:color===C.liner?.68:color===C.silver?.32:color===C.dark?.64:.46,envMapIntensity:.7,...extra});
  const part=id=>{if(groups.has(id))return groups.get(id);const g=new T.Group();g.userData.id=id;groups.set(id,g);const parent=manifest.nodes.find(n=>n.id===id)?.parentNodeId;(parent?part(parent):root).add(g);return g;};
  function mesh(id,geo,color,pos=[0,0,0],extra={}){const m=new T.Mesh(geo,mat(color,extra));m.position.set(...pos);m.userData.baseColor=m.material.color.clone();m.userData.baseOpacity=m.material.opacity;m.userData.id=id;m.castShadow=true;m.receiveShadow=true;part(id).add(m);meshes.push(m);return m;}
  function cylinder(id,a,b,r,color,r2=r,extra={}){const start=new T.Vector3(...a),end=new T.Vector3(...b),v=end.clone().sub(start);const m=mesh(id,new T.CylinderGeometry(r2,r,v.length(),renderer.isSVGRenderer?12:32),color,start.clone().add(end).multiplyScalar(.5).toArray(),extra);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),v.normalize());return m;}
@@ -45,15 +46,23 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
   for(let i=0;i<count;i++){const a=start+i*sweep,key=id+':'+a+':'+sweep;let entry=inspectionParts.find(p=>p.key===key);
    if(!entry){const group=new T.Group();group.userData.inspection={stage,start:a,sweep,angle:a+sweep/2};part(id).add(group);entry={key,id,stage,start:a,sweep,angle:a+sweep/2,anchor:[(profile[0][0]+profile.at(-1)[0])/2,Math.cos(a+sweep/2)*profile[0][1],Math.sin(a+sweep/2)*profile[0][1]],group};const guide=new T.Line(new T.BufferGeometry(),new T.LineDashedMaterial({color:0xb8aaa0,dashSize:.12,gapSize:.08,transparent:true,opacity:.48}));guide.userData.inspectionGuide=id;root.add(guide);entry.guide=guide;inspectionParts.push(entry);}
    entry.group.add(surface(id,profile,color,{start:a,length:sweep,...extra}));
+   // Separate pressure-shell sections meet at bounded flanges. These follow
+   // their actual removable sector, so opening a shell never leaves its edge
+   // hardware floating in the assembled position.
+   if(!options.perforated&&id!=='bypass')for(const [x,r]of [profile[0],profile.at(-1)]){
+    const flange=surface(id,[[x-.025,r],[x-.025,r+.055],[x+.025,r+.055],[x+.025,r]],C.silver,{start:a,length:sweep});
+    flange.userData.manufacturedFeature='casing joint flange';entry.group.add(flange);
+   }
   }
  }
  function linerDetail(object,angle){const entry=inspectionParts.find(p=>p.id==='combustor.liner'&&angle>=p.start-1e-6&&angle<=p.start+p.sweep+1e-6);if(entry)entry.group.add(object);}
+ function attachCaseAccessory(object,id,angle){const entry=inspectionParts.find(p=>p.id===id&&angle>=p.start-1e-6&&angle<=p.start+p.sweep+1e-6);if(entry)entry.group.add(object);}
  function registerInspection(object,id,target,stage,delta){object.userData.inspectionTarget=target;detailInspection.push({object,id,target,stage,delta:new T.Vector3(...delta),base:object.position.clone()});}
  function updateInspection(){const allowed=manifest.recipes.find(r=>r.id===recipe)?.shells||[];for(const p of inspectionParts){p.group.position.fromArray(inspectionOffset(p.stage,p.angle,allowed.includes(p.id)?inspection:0));const from=new T.Vector3(...p.anchor);p.guide.geometry.setFromPoints([from,from.clone().add(p.group.position)]);p.guide.computeLineDistances();}for(const p of detailInspection){const phase=p.stage===1?Math.min(1,inspection*2):Math.max(0,inspection*2-1),t=phase*phase*(3-2*phase);p.object.position.copy(p.base).addScaledVector(p.delta,p.target===recipe?t:0);}host.dataset.inspection=String(inspection);host.dataset.recipe=recipe;}
  function boundsFor(id){const ids=descendants(manifest,id),bounds=new T.Box3();root.updateMatrixWorld(true);for(const mesh of meshes)if(ids.has(mesh.userData.id)&&!mesh.userData.circuit)bounds.expandByObject(mesh);return bounds;}
  function nodeAnchor(node){const anchor=new T.Vector3(...node.anchor);if(inspection||node.group==='airframe'){const bounds=boundsFor(node.id);if(!bounds.isEmpty())bounds.getCenter(anchor);}return anchor;}
- function annularDisk(inner,outer,depth){const points=[[inner,-depth/2],[outer,-depth/2],[outer,depth/2],[inner,depth/2],[inner,-depth/2]].map(([r,y])=>new T.Vector2(r,y));return new T.LatheGeometry(points,32);}
- function bladeGeo(h,w,thickness=.04,handed=1){const verts=[],indices=[],radial=renderer.isSVGRenderer?4:12,chord=renderer.isSVGRenderer?4:12;for(let side=0;side<2;side++)for(let i=0;i<=radial;i++){const t=i/radial,width=w*(1-.42*t),twist=handed*(.45-.7*t),sweep=.09*t*t;for(let j=0;j<=chord;j++){const u=j/chord,xc=(u-.5)*width,camber=handed*.13*width*Math.sin(Math.PI*u),half=thickness*Math.sin(Math.PI*u)**.65*(1-.35*t)/2,z=camber+(side?half:-half);verts.push(xc*Math.cos(twist)-z*Math.sin(twist)+sweep,h*t,xc*Math.sin(twist)+z*Math.cos(twist));}}const layer=(radial+1)*(chord+1);for(let side=0;side<2;side++)for(let i=0;i<radial;i++)for(let j=0;j<chord;j++){const a=side*layer+i*(chord+1)+j,b=a+chord+1;indices.push(...(side?[a,a+1,b,b,a+1,b+1]:[a,b,a+1,b,b+1,a+1]));}for(const i of [0,radial])for(let j=0;j<chord;j++){const v=i*(chord+1)+j;indices.push(v,v+layer,v+1,v+1,v+layer,v+layer+1);}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(verts,3));g.setIndex(indices);g.computeVertexNormals();return g;}
+ function annularDisk(inner,outer,depth){return flangeGeometry(T,inner,outer,depth,32);}
+ function bladeGeo(h,w,thickness=.04,handed=1){const verts=[],indices=[],radial=renderer.isSVGRenderer?6:12,chord=renderer.isSVGRenderer?8:12;for(let side=0;side<2;side++)for(let i=0;i<=radial;i++){const t=i/radial,width=w*(1-.42*t),twist=handed*(.45-.7*t),sweep=.09*t*t;for(let j=0;j<=chord;j++){const u=(1-Math.cos(Math.PI*j/chord))/2,xc=(u-.5)*width,camber=handed*.13*width*Math.sin(Math.PI*u),half=thickness*Math.sin(Math.PI*u)**.65*(1-.35*t)/2,z=camber+(side?half:-half);verts.push(xc*Math.cos(twist)-z*Math.sin(twist)+sweep,h*t,xc*Math.sin(twist)+z*Math.cos(twist));}}const layer=(radial+1)*(chord+1);for(let side=0;side<2;side++)for(let i=0;i<radial;i++)for(let j=0;j<chord;j++){const a=side*layer+i*(chord+1)+j,b=a+chord+1;indices.push(...(side?[a,a+1,b,b,a+1,b+1]:[a,b,a+1,b,b+1,a+1]));}for(const i of [0,radial])for(let j=0;j<chord;j++){const v=i*(chord+1)+j;indices.push(...(i===0?[v,v+1,v+layer,v+1,v+layer+1,v+layer]:[v,v+layer,v+1,v+1,v+layer,v+layer+1]));}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(verts,3));g.setIndex(indices);g.computeVertexNormals();g.userData.airfoilSections={radial,chord,spacing:'cosine'};return g;}
  function row(id,x,r,hub,count,color,shaft,discId=id){const g=part(id),pivot=new T.Group();pivot.position.x=x;g.add(pivot);
   const bore=hubBore(shaft,manifest.kind),disk=new T.Mesh(bore?annularDisk(bore,hub,.14):new T.CylinderGeometry(hub,hub,.14,32),mat(C.dark));disk.rotation.z=-Math.PI/2;disk.userData.id=discId;disk.userData.baseColor=disk.material.color.clone();if(discId!==id){const dg=part(discId);pivot.add(dg);dg.add(disk);}else pivot.add(disk);meshes.push(disk);
   const b=new T.InstancedMesh(bladeGeo(r-hub,.24,.04,shaft?1:-1),mat(color),count);b.userData.id=id;b.userData.baseColor=b.material.color.clone();pivot.add(b);meshes.push(b);
@@ -72,7 +81,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
   }
  }
  function pipe(id,points,color,r=.035){const curve=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p)));const o=mesh(id,new T.TubeGeometry(curve,renderer.isSVGRenderer?16:36,r,renderer.isSVGRenderer?4:6,false),color);o.userData.curve=curve;return o;}
- function box(id,pos,size,color){return mesh(id,new T.BoxGeometry(...size),color,pos);}
+ function box(id,pos,size,color){return mesh(id,Math.min(...size)>=.08?bevelledBox(T,size):new T.BoxGeometry(...size),color,pos);}
  function gear(id,pos,r,axis,shaft,ratio,count=18){const g=new T.Group();if(id==='tail.stepup')g.userData.stepup={teeth:count,ratio};g.position.set(...pos);part(id).add(g);const disk=new T.Mesh(new T.CylinderGeometry(r-.015,r-.015,.16,28),mat(C.amber));disk.userData.id=id;disk.userData.baseColor=disk.material.color.clone();if(axis==='x')disk.rotation.z=-Math.PI/2;if(axis==='z')disk.rotation.x=Math.PI/2;g.add(disk);meshes.push(disk);
   for(let i=0;i<count;i++){const a=i/count*TAU,pitch=TAU*r/count,teeth=axis==='y'?new T.BoxGeometry(pitch*.4,.16,pitch*.48):axis==='x'?new T.BoxGeometry(.16,pitch*.4,pitch*.48):new T.BoxGeometry(pitch*.4,pitch*.48,.16);const m=new T.Mesh(teeth,mat(C.amber));m.userData.id=id;m.userData.baseColor=m.material.color.clone();if(axis==='x')m.position.set(0,Math.cos(a)*r,Math.sin(a)*r);else if(axis==='y')m.position.set(Math.cos(a)*r,0,Math.sin(a)*r);else m.position.set(Math.cos(a)*r,Math.sin(a)*r,0);m.rotation[axis]=axis==='y'?-a:a;g.add(m);meshes.push(m);}rotations.push({object:g,shaft,axis,ratio});}
  function aerodynamicRotor(id,center,r,count,axis,ratio){const spin=new T.Group();spin.position.set(...center);part(id).add(spin);rotations.push({object:spin,shaft:'p',axis,ratio});
@@ -120,7 +129,10 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
   for(let i=0;i<(fan?3:5);i++){const x=(fan?-2.8:-4)+i*.48,r=(fan?.95:1.0)-i*.055;const id='compressor.stage.'+(i+1);row(id+'.rotor',x,r,.3+i*.02,22,C.silver,'g',id+'.disc');if(i<(fan?2:4))row(id+'.stator',x+.25,r-.03,.31+i*.02,22,C.dark);}
   shell('compressor.casing',[[fan?-3.1:-4.4,1.05],[-1.35,.78]],C.casing,'casing');surface('diffuser',[[-1.5,.75],[-1,1]],C.dark);
   shell('combustor.casing',[[-1.05,1.1],[1.05,1.1],[1.25,.86]],C.casing,'casing');shell('combustor.liner',[[-.8,.94],[.7,.94],[1,.77]],C.liner,'liner',{perforated:true});shell('combustor.liner',[[-.85,.37],[1,.37]],C.liner,'liner');
-  cylinder('igniter',[.25,1.3,.8],[.25,.7,.45],.06,C.white);row('turbine.ngv.hpt',1.4,.83,.3,24,C.dark);row('gg.rotor',1.85,.83,.32,24,C.silver,'g','turbine.hpt.disc');row('turbine.ngv.lpt',2.45,.9,.29,24,C.dark);row('power.rotor',2.85,.91,.3,26,C.amber,'p','turbine.lpt.disc.1');row('power.rotor',3.2,.91,.3,26,C.amber,'p','turbine.lpt.disc.2');
+  const igniterAngle=2.48,igniterPoint=r=>[.25,Math.cos(igniterAngle)*r,Math.sin(igniterAngle)*r];
+  cylinder('igniter',igniterPoint(.74),igniterPoint(1.36),.06,C.white);cylinder('igniter',igniterPoint(1.095),igniterPoint(1.145),.13,C.silver);cylinder('igniter',igniterPoint(1.29),igniterPoint(1.4),.085,C.dark);
+  manifest.nodes.find(n=>n.id==='igniter').anchor=igniterPoint(1.4);part('igniter').userData.physicalMount={caseId:'combustor.casing',base:igniterPoint(1.115),axis:[0,Math.cos(igniterAngle),Math.sin(igniterAngle)],representative:true};attachCaseAccessory(part('igniter'),'combustor.casing',igniterAngle);
+  row('turbine.ngv.hpt',1.4,.83,.3,24,C.dark);row('gg.rotor',1.85,.83,.32,24,C.silver,'g','turbine.hpt.disc');row('turbine.ngv.lpt',2.45,.9,.29,24,C.dark);row('power.rotor',2.85,.91,.3,26,C.amber,'p','turbine.lpt.disc.1');row('power.rotor',3.2,.91,.3,26,C.amber,'p','turbine.lpt.disc.2');
   if(manifest.kind==='helicopter'){
    // Turn the discharge outboard before the aft reduction. A straight axial
    // nozzle at this station would send gas into the gearbox envelope.
@@ -132,18 +144,24 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
   const gg=fan?'hp.shaft':'gg.shaft',ps=fan?'lp.shaft':'power.shaft',concentric=prop||fan,outerSpan=[fan?-2.95:-4.2,2.06];shaftBody(gg,...outerSpan,SHAFT_CLEARANCE.outerRadius,C.cyan,concentric);shaftBody(ps,fan?-5.1:prop?-5.98:2.7,fan?3.4:prop?3.4:5.48,concentric?SHAFT_CLEARANCE.innerRadius:.14,C.amber,false,concentric?outerSpan:null,prop?[[-6.05,-5.70]]:fan?[]:[[4.32,5.6]]);
 
   shell('turbine.casing',[[1.1,1.02],[3.5,1.02]],C.casing,'casing');
-  for(const [x,r,len,id]of [[-2.8,1.06,2.9,'compressor.casing'],[.05,1.13,2.2,'combustor.casing'],[2.5,1.02,2,'turbine.casing']]){
-   const m=surface(id,[[x-len/2,r],[x+len/2,r]],C.casing,{start:0,length:TAU,side:T.FrontSide});m.visible=false;m.userData.closedCover=true;closedCovers.push(m);
+  for(const [id,profile]of [['compressor.casing',[[fan?-3.1:-4.4,1.065],[-1.35,.795]]],['combustor.casing',[[-1.05,1.115],[1.05,1.115],[1.25,.875]]],['turbine.casing',[[1.1,1.035],[3.5,1.035]]]]){
+   const m=surface(id,profile,C.casing,{start:0,length:TAU,side:T.FrontSide});m.visible=false;m.userData.closedCover=true;closedCovers.push(m);
   }
-  for(const [id,profile]of [['inlet',[[-5.55,fan?2.16:1.165],[-4.4,fan?2.145:1.065]]],...(fan?[['bypass',[[-4.4,2.145],[4.4,1.915]]]]:[])]){const cover=surface(id,profile,C.casing,{start:0,length:TAU,side:T.FrontSide});cover.visible=false;cover.userData.closedCover=true;closedCovers.push(cover);}
+  for(const [id,profile]of [['inlet',[[-5.55,fan?2.165:1.165],[-4.5,fan?1.815:1.015]]],...(fan?[['bypass',[[-4.4,2.145],[4.4,1.915]]]]:[])]){const cover=surface(id,profile,C.casing,{start:0,length:TAU,side:T.FrontSide});cover.visible=false;cover.userData.closedCover=true;closedCovers.push(cover);}
   const at=id=>manifest.nodes.find(n=>n.id===id).anchor;
   const cp=at('controller');box('controller',cp,[.95,.28,.65],C.violet);for(let i=0;i<8;i++)box('controller',[cp[0]-.35+i*.1,cp[1]+.18,cp[2]],[.045,.07,.65],C.dark);
   box('fmu',at('fmu'),[.5,.35,.4],C.amber);box('fuel.pump',at('fuel.pump'),[.5,.4,.4],C.dark);
   const ap=at('accessory');box('accessory',ap,[.85,.38,.65],C.green);cylinder('accessory',[-2.67,-SHAFT_CLEARANCE.outerRadius/Math.SQRT2,SHAFT_CLEARANCE.outerRadius/Math.SQRT2],ap,.04,C.cyan);
   // Selected engine-side equipment is mounted around the case/accessory zone.
   // A few honest structural standoffs replace the old detached service bench.
-  for(const n of manifest.nodes.filter(n=>['fuel.filter','fuel.shutoff','oil.tank','oil.filter','oil.cooler','oil.breather','controller','ignition.exciter','starter'].includes(n.id))){const p=n.anchor,r=Math.hypot(p[1],p[2]),caseR=fan?2.06:1.02;if(r>caseR+.1)cylinder(n.id,[p[0],p[1]*caseR/r,p[2]*caseR/r],p,.025,C.silver);}
-  buildDetailGeometry({T,C,mesh,part,cylinder,ring,pipe,surface,box,rotations,registerInspection,attachLinerDetail:linerDetail,pitchLinks,serviceFlows,bladeRoots,mechanismUpdates,lowDetail:renderer.isSVGRenderer},manifest);
+  const mountRadius=x=>fan?(x<-4.4?2.165-(x+5.55)*.35/1.05:2.145+(1.915-2.145)*(x+4.4)/8.8):x<-4.4?1.165-(x+5.55)*.15/1.05:x<-1.35?1.065+(x+4.4)*(.795-1.065)/3.05:x<1.05?1.115:x<1.25?Math.max(1.035,1.115-(x-1.05)*1.2):1.035;
+  for(const n of manifest.nodes.filter(n=>['fuel.filter','fuel.shutoff','oil.tank','oil.filter','oil.cooler','oil.breather','controller','ignition.exciter','starter'].includes(n.id))){
+   const p=n.anchor,r=Math.hypot(p[1],p[2]),caseR=mountRadius(p[0]);
+   if(r>caseR+.1){const support=part(n.id);support.userData.accessoryMount={caseRadius:caseR,representative:true};
+    for(const dx of [-.17,.17]){const radius=mountRadius(p[0]+dx),a=[p[0]+dx,p[1]*radius/r,p[2]*radius/r],b=[p[0]+dx,p[1]*(r-.09)/r,p[2]*(r-.09)/r];cylinder(n.id,a,b,.035,C.silver);const foot=cylinder(n.id,a,[a[0],a[1]+p[1]*.045/r,a[2]+p[2]*.045/r],.085,C.dark);foot.userData.mountFoot=true;}
+   }
+  }
+  buildDetailGeometry({T,C,mesh,part,cylinder,ring,pipe,surface,box,rotations,registerInspection,attachLinerDetail:linerDetail,attachCaseAccessory,pitchLinks,serviceFlows,bladeRoots,mechanismUpdates,lowDetail:renderer.isSVGRenderer},manifest);
   for(const n of manifest.nodes){
    if(groups.has(n.id))continue;
    if(!isPhysicalNode(n)){part(n.id);continue;}
@@ -181,7 +199,17 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
   }
   else if(p==='section'){span=manifest.kind==='turboprop'?8.5:7.4;controls.target.set(manifest.kind==='turboprop'?-.9:-.2,0,0);camera.position.set(manifest.kind==='turboprop'?2:.6,2.6,16);}
   else {span=manifest.kind==='helicopter'?7.8:10;controls.target.set(-.3,.1,0);camera.position.copy(controls.target).add(new T.Vector3(-6,5.3,16));}
-  resize();controls.update();updateStyles();
+  resize();controls.update();updateStyles();fitStudioToVisibleAssembly();
+ }
+ function fitStudioToVisibleAssembly(){
+  root.updateMatrixWorld(true);const bounds=new T.Box3();
+  root.traverseVisible(o=>{if(o.isMesh&&o.userData.id&&!o.userData.circuit&&!o.userData.directionMarker)bounds.expandByObject(o);});
+  if(bounds.isEmpty())return;
+  const size=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3()),extent=Math.max(3,size.length()*.58);
+  ground.position.y=bounds.min.y-.12;grid.position.y=ground.position.y-.025;
+  keyLight.target.position.copy(center);scene.add(keyLight.target);keyLight.position.copy(center).add(new T.Vector3(-.5,.9,.65).normalize().multiplyScalar(extent*2.5));
+  Object.assign(keyLight.shadow.camera,{left:-extent,right:extent,top:extent,bottom:-extent,near:.1,far:extent*6});keyLight.shadow.normalBias=Math.min(.025,extent*.0015);keyLight.shadow.camera.updateProjectionMatrix();
+  ground.userData.assemblyClearance=.12;keyLight.userData.fittedAssembly=preset;
  }
  function updateStyles(){const selectedIds=descendants(manifest,selected),visibleIds=new Set([...selectedIds,...ancestors(manifest,selected)]);const node=manifest.nodes.find(n=>n.id===selected),shaft=shaftTrace==='all'?null:shaftTrace||((overlay==='shafts'&&node?.shaft)?node.shaft:null),members=manifest.shafts.find(s=>s.id===shaft)?.members||[];
   // The closed aircraft cowling is the exterior envelope. Its enclosed shell
@@ -204,7 +232,8 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
    if(m.userData.airframeContext){if(preset!=='aircraft'&&!hit)m.visible=false;else opacity=1;}
    if(m.userData.installationCover){m.visible=m.visible&&((preset==='aircraft'&&!cutaway&&!inspection)||hit);if(hit&&cutaway)opacity=.18;}
    if(closedInstallation&&m.userData.enclosedByCowling)m.visible=false;
-   if(preset!=='aircraft'&&['rotor','tail.drive','tail.rotor','pitch.control','swashplate','mast','tail.gearbox','tail.stepup'].includes(id)&&!hit&&overlay!=='shafts')m.visible=false;
+   if(preset!=='aircraft'&&['rotor','tail.drive','tail.rotor','pitch.control','swashplate','mast','tail.gearbox','tail.stepup'].includes(id)&&!hit&&overlay!=='shafts'&&!(selected==='load.speed'&&manifest.kind==='helicopter'&&['mast','rotor'].includes(id)))m.visible=false;
+   if(preset!=='aircraft'&&manifest.kind==='helicopter'&&id==='load.speed'&&!hit)m.visible=false;
    if(overlay==='shafts'&&!member&&!id.endsWith('.shaft')&&n.group!=='drive')opacity=Math.min(opacity,.14);
    if(overlay==='control'&&!neighbors.has(id)&&n.group!=='control')opacity=Math.min(opacity,.22);
    if(overlay==='services'&&n.group!=='service'&&!hit)opacity=Math.min(opacity,.2);
@@ -220,7 +249,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
    if(l.material)l.material.opacity=relevant?.95:.3;
   }
   for(const {full,section}of sectionCovers){full.visible=overlay!=='shafts';section.visible=overlay==='shafts';}
-  for(const p of inspectionParts)p.guide.visible=inspection>0&&!isolate&&p.group.position.lengthSq()>0&&groups.get(p.id).visible&&p.group.children.some(m=>m.visible);
+  for(const p of inspectionParts)p.guide.visible=inspection>0&&!isolate&&p.group.position.lengthSq()>0&&groups.get(p.id).visible&&p.group.children.some(m=>m.isMesh&&m.visible);
   for(const m of closedCovers)m.visible=!cutaway&&!inspection&&overlay!=='shafts'&&(!isolate||selectedIds.has(m.userData.id))&&!(closedInstallation&&m.userData.enclosedByCowling);
   for(const arrow of forceArrows)arrow.visible=preset==='aircraft'&&!isolate;
   for(const f of flowParticles)f.particles.visible=!isolate&&!inspection&&preset!=='aircraft'&&(overlay==='gas'||overlay==='anatomy');

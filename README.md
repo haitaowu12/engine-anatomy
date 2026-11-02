@@ -1,6 +1,6 @@
 # Engine Anatomy
 
-An original interactive atlas of **three engine–airframe pairs**, with detailed selectable construction, coordinated energy/control views and distinct synthetic running plants.
+An original interactive atlas of **three engine–airframe pairs**, with selectable construction, coordinated energy/control views and distinct synthetic running plants, plus a separate **LEGO Technic H175 mechanism study**.
 
 - [GitHub Pages](https://haitaowu12.github.io/engine-anatomy/)
 - [GPT Site](https://engine-anatomy.techiesea.chatgpt.site)
@@ -13,7 +13,11 @@ Each deployment exposes `release.json` and an HTML build identifier. Compare tho
 | Turboprop / propeller aircraft | An independent power shaft returns forward inside the hollow gas-generator shaft. A declared 10:1 reduction drives a pitchable propeller. The engine fuel loop regulates requested torque; a separate governor/PCU regulates propeller speed through pitch. |
 | Direct-drive turbofan / jet aircraft | HPC/HPT on the HP shaft; fan/LPC/LPT on the LP shaft; distinct core and bypass streams. A demand-derived N1 reference controls fuel response and independent spool dynamics. |
 
-## Explore version 4
+## Explore version 5
+
+Choose **Engines** for the three running-engine studies or **LEGO H175** for the separate [set 42145 mechanism study](https://haitaowu12.github.io/engine-anatomy/h175.html). The H175 page uses original construction-toy geometry and the functions documented in LEGO's product page and building instructions. Its battery motor, mechanical selectors, rotor pitch, retractable gear and winch are separate from the gas-turbine plants. It is not a brick-for-brick inventory or a manufacturer gearbox reconstruction. See [H175-STUDY.md](docs/H175-STUDY.md) for source-to-feature mappings and declared simplifications.
+
+The version 5 geometry and interaction review compares the previous release with the changed model; [REVISION-5.md](docs/REVISION-5.md) records the actual browser evidence. Circuit selection is now above its diagram, and both HTML entry pages receive the same source digest and dependency cache keys.
 
 **Component**, **Walkthrough** and **Experiment** activities share one selection. The component browser, search, physical/system parent links, scene picking, explanatory routes and inspection controls refer to the same semantic IDs. Switching architecture preserves the selected concept where that concept exists. Focus and Return view are explicit camera actions. Clickable ancestor breadcrumbs, previous/next controls and browser history preserve navigable context. Links include the selected lens, view, activity and circuit/lesson where relevant.
 
@@ -50,6 +54,8 @@ The build bundles pinned `three@0.180.0`, OrbitControls, SVGRenderer, Projector 
 
 ## Evidence and implementation
 
+- [`docs/REVISION-5.md`](docs/REVISION-5.md): current geometry corrections, H175 integration, release checks and visual evidence.
+- [`docs/H175-STUDY.md`](docs/H175-STUDY.md): separate construction-toy mechanism scope, original geometry, documented features and verification.
 - [`docs/REVISION-4.md`](docs/REVISION-4.md): page-by-page review, corrected installation/representation concepts, navigation and new regression gates.
 - [`docs/COMPONENT-REVIEW.md`](docs/COMPONENT-REVIEW.md): complete per-architecture component representation and motion inventory.
 

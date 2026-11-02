@@ -5,6 +5,35 @@ export function buildDetailGeometry(a,m){
  const {T,C,mesh,part,cylinder,ring,pipe,surface,box,rotations,registerInspection,serviceFlows}=a,fan=m.kind==='turbofan',heli=m.kind==='helicopter',prop=m.kind==='turboprop',tau=Math.PI*2;
  const annulus=(id,x,inner,outer,depth,color,open=false)=>{const profile=[[inner,-depth/2],[outer,-depth/2],[outer,depth/2],[inner,depth/2],[inner,-depth/2]].map(p=>new T.Vector2(...p));const o=mesh(id,new T.LatheGeometry(profile,a.lowDetail?20:40,0,open?Math.PI*1.3:tau),color,[x,0,0]);o.rotation.z=-Math.PI/2;return o;};
  const tube=(id,center,inner,outer,length,color,axis='x',open=false)=>{const o=annulus(id,0,inner,outer,length,color,open);o.position.set(...center);if(axis==='y')o.rotation.z=0;return o;};
+ function mountedProbe(n){
+  const id=n.id,gasProbe=['speed.g','speed.p','temperature','pressure','inlet.sensor','vibration'].includes(id),angle=2.48;
+  let base,axis,caseId=null;
+  if(gasProbe){
+   const x=n.anchor[0],r=id==='pressure'?.915:id==='inlet.sensor'?(fan?2.15+(1.8-2.15)*(x+5.55)/1.05:1.15+(1-1.15)*(x+5.55)/1.05)+.015:id==='temperature'&&fan?1+(x-3.5)*.07/1.3:1.035;
+   axis=new T.Vector3(0,Math.cos(angle),Math.sin(angle));base=new T.Vector3(x,axis.y*r,axis.z*r);
+   caseId=id==='temperature'&&fan?'exhaust':['speed.g','speed.p','temperature','vibration'].includes(id)?'turbine.casing':null;
+  }else if(id==='load.speed'&&heli){base=new T.Vector3(AIRFRAME_LAYOUT.helicopter.mastX,5.8,.145);axis=new T.Vector3(0,0,1);}
+  else if(id==='fmu.position'){
+   const p=m.nodes.find(v=>v.id==='fmu').anchor;base=new T.Vector3(p[0],p[1]+.175,p[2]);axis=new T.Vector3(0,1,0);
+  }else{
+   const p=n.anchor,r=Math.hypot(p[1],p[2]),radius=id==='torque'?(fan?1.035:heli?2.13:1.23):id==='load.speed'?.35:1.115;
+   axis=new T.Vector3(0,p[1]/r,p[2]/r);base=new T.Vector3(p[0],axis.y*radius,axis.z*radius);
+  }
+  const point=d=>base.clone().addScaledVector(axis,d).toArray();
+  const owner=part(id);owner.userData.physicalMount={kind:gasProbe?'radial-case-boss':id==='load.speed'&&heli?'mast-pickup':'equipment-boss',base:base.toArray(),axis:axis.toArray(),caseId,representative:true};
+  cylinder(id,point(-.07),point(.18),.049,C.silver);
+  const flange=cylinder(id,point(-.018),point(.035),.11,C.dark);flange.userData.mountFoot=true;
+  const nut=mesh(id,new T.CylinderGeometry(.075,.075,.06,6),C.silver,point(.075));nut.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),axis);
+  cylinder(id,point(.16),point(.25),.068,C.dark);
+  const connector=box(id,point(.27),[.12,.09,.13],C.dark);connector.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),axis);
+  n.anchor=point(.27);
+  // The short lead returns to a case-side clamp. It is physical connector
+  // detail, not a moving signal or an assertion about an OEM wiring route.
+  const cableEnd=base.clone().addScaledVector(axis,.09).add(new T.Vector3(.42,0,0));
+  const lead=pipe(id,[point(.31),base.clone().addScaledVector(axis,.37).add(new T.Vector3(.24,0,0)).toArray(),cableEnd.toArray()],C.dark,.018);lead.userData.representativeHarness=true;
+  cylinder(id,cableEnd.clone().addScaledVector(axis,-.05).toArray(),cableEnd.clone().addScaledVector(axis,.03).toArray(),.035,C.silver);
+  if(caseId)a.attachCaseAccessory?.(owner,caseId,angle);
+ }
  function radialFrame(id,x,r){annulus(id,x,r-.055,r,.085,C.casing);for(let i=0;i<8;i++){const angle=i*tau/8;cylinder(id,[x,Math.cos(angle)*.35,Math.sin(angle)*.35],[x,Math.cos(angle)*(r-.05),Math.sin(angle)*(r-.05)],.025,C.silver);}}
  radialFrame('compressor.frame',fan?-3.06:-4.3,fan?1.03:1.07);radialFrame('turbine.frame',3.5,1.02);if(fan)radialFrame('fan.frame',-4.5,2.07);
  annulus('combustor.dome',-.85,.37,.94,.06,C.liner);
@@ -47,15 +76,20 @@ export function buildDetailGeometry(a,m){
  for(const n of m.nodes){if(!isPhysicalNode(n)){part(n.id);continue;}if(part(n.id).children.length||n.parentNodeId||m.nodes.some(c=>c.parentNodeId===n.id))continue;const p=n.anchor,id=n.id;
   if(['control','service'].includes(n.group)){
    if(id==='channels'){for(const dx of [-.14,.14]){box(id,[p[0]+dx,p[1],p[2]],[.22,.23,.22],C.violet);for(let j=0;j<5;j++)box(id,[p[0]+dx-.07+j*.035,p[1]+.13,p[2]],[.018,.04,.18],C.green);}}
-   else if(id==='bleed'){pipe(id,[[p[0],p[1],p[2]],[p[0],p[1]+.25,p[2]],[p[0]+.4,p[1]+.25,p[2]]],C.cyan,.09);cylinder(id,[p[0]+.2,p[1]+.25,p[2]-.12],[p[0]+.2,p[1]+.25,p[2]+.12],.1,C.silver);}
-   else if(/speed|temperature|pressure|sensor|torque|vibration|chip|feedback|position/.test(id)){cylinder(id,[p[0],p[1]-.13,p[2]],[p[0],p[1]+.13,p[2]],.065,C.silver);cylinder(id,[p[0],p[1]+.13,p[2]],[p[0],p[1]+.24,p[2]],.035,C.violet);const socket=box(id,[p[0],p[1]+.24,p[2]],[.15,.1,.13],C.dark);}
+   else if(id==='bleed'){
+    const angle=Math.PI*2-.61,x=p[0],r=1.065+(x+(fan?3.1:4.4))*(.795-1.065)/(fan?1.75:3.05),axis=new T.Vector3(0,Math.cos(angle),Math.sin(angle)),base=new T.Vector3(x,axis.y*r,axis.z*r),elbow=base.clone().addScaledVector(axis,.25),out=elbow.clone().add(new T.Vector3(.35,0,0));
+    pipe(id,[base.clone().addScaledVector(axis,-.025).toArray(),elbow.toArray(),out.toArray()],C.cyan,.07);cylinder(id,base.clone().addScaledVector(axis,-.02).toArray(),base.clone().addScaledVector(axis,.04).toArray(),.13,C.silver);
+    cylinder(id,elbow.clone().add(new T.Vector3(.16,0,-.1)).toArray(),elbow.clone().add(new T.Vector3(.16,0,.1)).toArray(),.09,C.silver);
+    n.anchor=elbow.toArray();part(id).userData.physicalMount={caseId:'compressor.casing',base:base.toArray(),axis:axis.toArray(),representative:true};a.attachCaseAccessory?.(part(id),'compressor.casing',angle);
+   }
+   else if(/speed|temperature|pressure|sensor|torque|vibration|chip|feedback|position/.test(id))mountedProbe(n);
    else if(/cockpit|demand/.test(id)){box(id,p,[.45,.35,.055],C.dark);box(id,[p[0],p[1],p[2]+.031],[.35,.22,.012],C.violet);for(const dx of [-.12,0,.12])mesh(id,new T.SphereGeometry(.025,8,6),C.silver,[p[0]+dx,p[1]-.12,p[2]+.04]);}
    else{cylinder(id,[p[0]-.13,p[1],p[2]],[p[0]+.13,p[1],p[2]],.12,C.dark);for(const dx of [-.13,.13])ring(id,p[0]+dx,.13,.018,C.silver,[p[1],p[2]]);box(id,[p[0],p[1]+.14,p[2]],[.18,.08,.12],C.violet);}
   }
  }
  // Existing service concepts now refer to visible assemblies instead of tiny proxy boxes.
  part('oil');const ep=m.nodes.find(n=>n.id==='electrical').anchor;cylinder('electrical',[ep[0]-.3,ep[1],ep[2]],[ep[0]+.3,ep[1],ep[2]],.22,C.green);for(let i=0;i<9;i++)ring('electrical',ep[0]-.2+i*.05,.23,.012,C.dark,[ep[1],ep[2]]);
- pipe('ignition.exciter',[m.nodes.find(n=>n.id==='ignition.exciter').anchor,[.9,-.5,1.6],[.25,1.3,.8]],C.violet,.027);
+ pipe('ignition.exciter',[m.nodes.find(n=>n.id==='ignition.exciter').anchor,[.6,-1.15,1.48],m.nodes.find(n=>n.id==='igniter').anchor],C.violet,.027);
  if(!fan){const ratio=heli?12:10,center=heli?[5.4,0,0]:[-5.9,0,0],sunTeeth=12,ringTeeth=(ratio-1)*sunTeeth,planetTeeth=(ringTeeth-sunTeeth)/2,module=heli?.03:.02,sunR=sunTeeth*module/2,planetR=planetTeeth*module/2,ringR=ringTeeth*module/2;
   const cover=tube('reduction.case',center,ringR+.09,ringR+.14,.7,C.casing);cover.material.transparent=true;cover.material.opacity=.28;cover.userData.baseOpacity=.28;registerInspection(cover,'reduction.case','output',1,[1.5,0,0]);for(const dx of [-.35,.35])ring('reduction.case',center[0]+dx,ringR+.13,.035,C.silver);
   const gear=(id,r,teeth,internal=false)=>{const g=new T.Group();part(id).add(g);const disk=annulus(id,0,internal?r:id==='reduction.sun'?(heli?.145:.08):.045,internal?r+.09:r-.012,.16,internal?C.dark:C.amber);g.add(disk);for(let i=0;i<teeth;i++){const q=i*tau/teeth,rad=r+(internal?-.004:.004);const tooth=box(id,[0,Math.cos(q)*rad,Math.sin(q)*rad],[.16,.022,.019],C.amber);tooth.rotation.x=q;g.add(tooth);}g.userData.teeth=teeth;return g;};
