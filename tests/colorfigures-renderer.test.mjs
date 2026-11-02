@@ -38,3 +38,36 @@ test('retained drawing paths update with camera, selection material, geometry an
  }
  mesh.visible=false;r.render(scene,c);assert.equal(r.info.render.faces,0);assert.equal(r.domElement.innerHTML,'');
 });
+
+// Sample the composited drawing, rather than merely counting prepared faces.
+function fillAt(svg,x,y){
+ let result;
+ for(const match of svg.matchAll(/<path d="([^"]+)" fill="(#[a-f0-9]+)"/g)){
+  let inside=false;
+  for(const subpath of match[1].split('M').filter(Boolean)){
+   const values=subpath.match(/-?\d+(?:\.\d+)?/g).map(Number),points=[];
+   for(let i=0;i<values.length;i+=2)points.push([values[i],values[i+1]]);
+   for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const [a,b]=points[i],[c,d]=points[j];
+    if((b>y)!==(d>y)&&x<(c-a)*(y-b)/(d-b)+a)inside=!inside;
+   }
+  }
+  if(inside)result=match[2];
+ }
+ return result;
+}
+test('subdivided track beds cannot paint over raised sleepers as the camera orbits',()=>{
+ const scene=new T.Scene(),bed=new T.Mesh(new T.BoxGeometry(14,.25,6,24,1,10),new T.MeshBasicMaterial({color:0x0000ff}));scene.add(bed);
+ for(const x of [-5,0,5]){const sleeper=new T.Mesh(new T.BoxGeometry(.3,.2,5),new T.MeshBasicMaterial({color:0xff0000}));sleeper.position.set(x,.4,0);scene.add(sleeper);}
+ const shape=new T.Shape();shape.moveTo(-2.5,-.1);shape.lineTo(2.5,-.1);shape.lineTo(2.4,.075);shape.lineTo(2.23,.1);shape.lineTo(-2.23,.1);shape.lineTo(-2.4,.075);shape.closePath();
+ const extrusion=new T.ExtrudeGeometry(shape,{depth:.3,bevelEnabled:false,curveSegments:1});extrusion.translate(0,0,-.15);extrusion.rotateY(Math.PI/2);extrusion.userData.localDepthTiles=true;
+ for(const sleeper of scene.children.filter(object=>object!==bed))sleeper.geometry=extrusion;
+ const r=new ColorfiguresRenderer({raster:false});r.setQuality('detail');r.setSize(800,600);
+ for(const [x,y,z]of [[13,15,17],[-13,15,17],[13,15,-17],[-13,15,-17],[17,5,13],[17,30,13]]){
+  const c=new T.OrthographicCamera(-11,11,8.25,-8.25,.1,100);c.position.set(x,y,z);c.lookAt(0,0,0);r.render(scene,c);
+  for(const sleeperX of [-5,0,5])for(const sleeperZ of [-2,0,2]){
+   const point=new T.Vector3(sleeperX,.5,sleeperZ).project(c),color=fillAt(r.domElement.innerHTML,(point.x+1)*400,(1-point.y)*300);
+   assert(color&&parseInt(color.slice(1,3),16)>parseInt(color.slice(5,7),16),`raised sleeper ${sleeperX} hidden at camera ${[x,y,z]} by ${color}`);
+  }
+ }
+});
