@@ -46,7 +46,8 @@ function separation(a,b,eye,toward,orthographic){
   if(hi<=1e-7&&lo<-1e-7)return side>0?1:-1;
   return 0;
 }
-export function orderFaces(parts,camera,width,height){
+export function orderFaces(parts,camera,width,height,graph){
+  const known=graph.parts||new Set(),nextEdges=new Map();
   parts.sort((a,b)=>a.order-b.order||a.depth-b.depth);
   const eye=camera.getWorldPosition(camera.position.clone()).toArray();
   const toward=camera.getWorldDirection(camera.position.clone()).negate().toArray();
@@ -54,12 +55,12 @@ export function orderFaces(parts,camera,width,height){
     let end=start+1;
     while(end<parts.length&&parts[end].order===parts[start].order)end++;
     const group=parts.slice(start,end),n=group.length;start=end;
-    if(n<2)continue;
+    if(n<2||!group.some(p=>p.plane&&area(p.loops)>1200))continue;
     // Spatial bins bound comparisons to overlapping screen regions. Small
     // details keep their existing LOD; broad surfaces establish constraints.
-    const cols=Math.ceil(width/64),rows=Math.ceil(height/64),bins=new Map();
-    const broad=new Uint8Array(n),incoming=new Uint32Array(n),seen=new Uint32Array(n);
-    const out=Array.from({length:n},()=>[]);let stamp=0;
+    const cols=Math.ceil(width/64),rows=Math.ceil(height/64),bins=new Map(),changedBins=new Map();
+    const broad=new Uint8Array(n),changed=new Uint8Array(n),incoming=new Uint32Array(n),seen=new Uint32Array(n);
+    const out=new Array(n),involved=new Uint8Array(n);let stamp=0;
     const cells=r=>{
       const result=[];
       for(let y=Math.max(0,Math.floor(r[1]/64));y<=Math.min(rows-1,Math.floor(r[3]/64));y++){
@@ -67,28 +68,45 @@ export function orderFaces(parts,camera,width,height){
       }
       return result;
     };
+    let changedPanel=false;
     for(let i=0;i<n;i++){
       const p=group[i];
-      if(!p.bounds||!p.loops.length||!Number.isFinite(p.depth))continue;
-      broad[i]=Boolean(p.plane&&area(p.loops)>1200);
+      broad[i]=Boolean(p.plane&&area(p.loops)>1200);changed[i]=!known.has(p);
+      if(broad[i]&&changed[i])changedPanel=true;
+    }
+    for(let i=0;i<n;i++){
+      const p=group[i];
+      if(!p.bounds||!p.loops.length||!Number.isFinite(p.depth)||!changedPanel&&!changed[i])continue;
       for(const key of cells(p.bounds)){
-        if(!bins.has(key))bins.set(key,[]);
-        bins.get(key).push(i);
+        if(changedPanel){if(!bins.has(key))bins.set(key,[]);bins.get(key).push(i);}
+        if(changed[i]){
+          if(!changedBins.has(key))changedBins.set(key,[]);
+          changedBins.get(key).push(i);
+        }
       }
+    }
+    // Keep constraints between unchanged projected parts. Only pairs involving
+    // a changed part need geometric comparison during mechanism animation.
+    const positions=new Map(group.map((p,i)=>[p,i])),edges=[];
+    const connect=(from,to)=>{(out[from]??=[]).push(to);incoming[to]++;involved[from]=involved[to]=1;edges.push([group[from],group[to]]);};
+    for(const [a,b]of graph.edges?.get(group[0].order)||[]){
+      const from=positions.get(a),to=positions.get(b);
+      if(from!==undefined&&to!==undefined)connect(from,to);
     }
     for(let i=0;i<n;i++){
       if(!broad[i])continue;
-      stamp++;const a=group[i];
-      for(const key of cells(a.bounds))for(const j of bins.get(key)||[]){
-        if(i===j||seen[j]===stamp||broad[j]&&j<i)continue;
+      stamp++;const a=group[i],candidates=changed[i]?bins:changedBins;
+      for(const key of cells(a.bounds))for(const j of candidates.get(key)||[]){
+        if(i===j||seen[j]===stamp||broad[j]&&(!changed[i]||changed[j]&&j<i))continue;
         seen[j]=stamp;const b=group[j];
         let order=separation(a,b,eye,toward,camera.isOrthographicCamera);
         if(!order&&broad[j])order=-separation(b,a,eye,toward,camera.isOrthographicCamera);
         if(!order||!overlaps(a,b))continue;
-        const from=order<0?i:j,to=order<0?j:i;
-        out[from].push(to);incoming[to]++;
+        connect(order<0?i:j,order<0?j:i);
       }
     }
+    nextEdges.set(group[0].order,edges);
+    if(!edges.length)continue;
     // A stable topological order respects all proved separations. A comparator
     // combining plane tests and centre depth is non-transitive and loses them.
     const heap=[],done=new Uint8Array(n),ordered=[];
@@ -109,15 +127,23 @@ export function orderFaces(parts,camera,width,height){
       }
       return id;
     };
-    for(let i=0;i<n;i++)if(!incoming[i])push(i);
+    for(let i=0;i<n;i++)if(involved[i]&&!incoming[i])push(i);
+    let free=0;
     while(ordered.length<n){
-      // Intersecting geometry can form a painter cycle. Retain the original
-      // far-to-near priority at that boundary rather than dropping any face.
-      if(!heap.length){let i=0;while(done[i])i++;push(i);}
-      const i=pop();if(done[i])continue;
+      while(free<n&&involved[free])free++;
+      let i;
+      if(free<n&&(!heap.length||free<heap[0]))i=free++;
+      else{
+        // Intersecting geometry can form a painter cycle. Retain the original
+        // far-to-near priority at that boundary rather than dropping any face.
+        if(!heap.length){let first=0;while(done[first])first++;push(first);}
+        i=pop();
+      }
+      if(done[i])continue;
       done[i]=1;ordered.push(group[i]);
-      for(const j of out[i])if(!done[j]&&--incoming[j]===0)push(j);
+      if(out[i])for(const j of out[i])if(!done[j]&&--incoming[j]===0)push(j);
     }
     for(let i=0;i<n;i++)parts[end-n+i]=ordered[i];
   }
+  graph.parts=new Set(parts);graph.edges=nextEdges;
 }

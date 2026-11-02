@@ -62,14 +62,14 @@ export class ColorfiguresRenderer {
     this.domElement.setAttribute('role','img');this.domElement.setAttribute('xmlns',NS);
     this.shadowMap={enabled:false};this.info={render:{calls:0,faces:0,triangles:0},memory:{geometries:0}};
     this.width=800;this.height=600;this.cache=new WeakMap();this.drawCache=new WeakMap();this.palettes=new Map();
-    this.orderCache=null;this.background='#f4f1e8';this.quality='auto';
+    this.orderCache=null;this.orderGraph={};this.background='#f4f1e8';this.quality='auto';
   }
   setSize(width,height){this.width=Math.max(1,width);this.height=Math.max(1,height);if(this.raster){const w=Math.round(this.width*this.pixelRatio),h=Math.round(this.height*this.pixelRatio);if(this.domElement.width!==w)this.domElement.width=w;if(this.domElement.height!==h)this.domElement.height=h;}else this.domElement.setAttribute('viewBox',`0 0 ${this.width} ${this.height}`);}
   setPixelRatio(value){this.pixelRatio=Math.min(2,value||1);this.setSize(this.width,this.height);}
   setClearColor(){}
   setQuality(value){this.quality=value;}
   getContext(){return {getExtension:()=>null};}
-  dispose(){this.disposed=true;this.orderCache=null;this.cache=new WeakMap();this.drawCache=new WeakMap();this.domElement.replaceChildren();}
+  dispose(){this.disposed=true;this.orderCache=null;this.orderGraph={};this.cache=new WeakMap();this.drawCache=new WeakMap();this.domElement.replaceChildren();}
   render(scene,camera){
     if(this.disposed)return;
     const started=performance.now(),materials=new Map(),matrix=new T.Matrix4(),view=new T.Matrix4(),project=new T.Matrix4(),normalMatrix=new T.Matrix3();
@@ -142,7 +142,10 @@ export class ColorfiguresRenderer {
       for(let i=0;i<cached.faces.length;i++){
         const face=cached.faces[i],mat=Array.isArray(object.material)?object.material[face.material]:object.material;
         if(!mat||mat.visible===false||mat.opacity<.015||mat.side===T.FrontSide&&!facing[i]||mat.side===T.BackSide&&facing[i])continue;
-        const loops=face.loops.map(loop=>clipNear(loop.map(id=>pts[id]))).filter(loop=>loop.length>=3);if(!loops.length)continue;
+        const crossesNear=face.vertices.some(id=>pts[id][2]>-camera.near);
+        let loops=face.loops.map(loop=>loop.map(id=>pts[id]));
+        if(crossesNear)loops=loops.map(clipNear).filter(loop=>loop.length>=3);
+        if(!loops.length)continue;
         const depth=face.vertices.reduce((sum,id)=>sum+pts[id][2],0)/face.vertices.length;
         const norm=normals[i],sign=facing[i]?1:-1,light=sign*(-.35*norm.x+.55*norm.y+.76*norm.z);
         const shade=step3(light>.58?1:light>.04?.3:-1,.62,.12,materialColor(mat)),path=loops.map(loop=>sp(loop)).join('');
@@ -156,8 +159,12 @@ export class ColorfiguresRenderer {
           }
         }
         const opacity=mat.opacity??1,points=loops.flat();
-        const q=norm.clone().transformDirection(camera.matrixWorld),p=points[0];
-        const plane=[q.x,q.y,q.z,-q.x*p[5]-q.y*p[6]-q.z*p[7]];
+        // Floors, roofs, walls and enclosure panels need plane constraints.
+        // Curved/bladed meshes retain facet-depth sorting so rotating machinery
+        // does not compare every blade facet with every other blade facet.
+        const panel=['BoxGeometry','ExtrudeGeometry','PlaneGeometry'].includes(object.geometry.type);
+        let plane=null;
+        if(panel){const q=norm.clone().transformDirection(camera.matrixWorld),p=points[0];plane=[q.x,q.y,q.z,-q.x*p[5]-q.y*p[6]-q.z*p[7]];}
         parts.push({depth:mat.depthTest===false?Infinity:depth,order:object.renderOrder,
           points,loops,plane,bounds:boundsOf(points),path,shade,opacity,edges,width:.65});faceCount++;
       }
@@ -187,7 +194,7 @@ export class ColorfiguresRenderer {
     const previous=this.orderCache;
     if(previous&&previous.submitted.length===parts.length&&parts.every((p,i)=>p===previous.submitted[i]))parts=previous.ordered;
     else{
-      const submitted=parts.slice();orderFaces(parts,camera,this.width,this.height);
+      const submitted=parts.slice();orderFaces(parts,camera,this.width,this.height,this.orderGraph);
       this.orderCache={submitted,ordered:parts};
     }
     if(this.raster){

@@ -61,11 +61,12 @@ test('broad surfaces preserve physical occlusion from both sides after camera an
  const floor=new T.Mesh(new T.BoxGeometry(12,.2,8),new T.MeshBasicMaterial({color:0x0000ff}));
  const part=new T.Mesh(new T.BoxGeometry(.8,.8,.8),new T.MeshBasicMaterial({color:0xff0000}));
  group.add(floor,part);const r=new ColorfiguresRenderer({raster:false});r.setQuality('detail');r.setSize(800,600);
- for(const rotation of [0,Math.PI/2])for(const height of [.7,-.7])for(const perspective of [false,true]){
-  group.rotation.x=rotation;part.position.set(-3,height,-2);group.updateMatrixWorld(true);
-  for(const y of [7,-7]){
-   const c=perspective?new T.PerspectiveCamera(38,4/3,.1,100):new T.OrthographicCamera(-8,8,6,-6,.1,100);
-   c.position.set(8,y,9).applyAxisAngle(new T.Vector3(1,0,0),rotation);c.lookAt(0,0,0);c.updateMatrixWorld(true);
+ for(const rotation of [0,Math.PI/2])for(const perspective of [false,true])for(const y of [7,-7]){
+  group.rotation.x=rotation;
+  const c=perspective?new T.PerspectiveCamera(38,4/3,.1,100):new T.OrthographicCamera(-8,8,6,-6,.1,100);
+  c.position.set(8,y,9).applyAxisAngle(new T.Vector3(1,0,0),rotation);c.lookAt(0,0,0);c.updateMatrixWorld(true);
+  for(const height of [.7,-.7,.7]){
+   part.position.set(-3,height,-2);group.updateMatrixWorld(true);
    r.render(scene,c);const point=part.getWorldPosition(new T.Vector3()).project(c),ray=new T.Raycaster();
    ray.setFromCamera(new T.Vector2(point.x,point.y),c);const hit=ray.intersectObjects([floor,part],false)[0];
    const color=fillAt(r.domElement.innerHTML,(point.x+1)*400,(1-point.y)*300);
