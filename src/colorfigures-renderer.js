@@ -24,12 +24,14 @@ export function prepareColorfiguresGeometry(geometry){
     v1.set(b[0]-a[0],b[1]-a[1],b[2]-a[2]);v2.set(c[0]-a[0],c[1]-a[1],c[2]-a[2]);v1.cross(v2);
     if(v1.lengthSq()<1e-20)continue;v1.normalize();
     const group=geometry.groups.find(g=>i>=g.start&&i<g.start+g.count);
-    const t={ids,normal:v1.clone(),material:group?.materialIndex||0};triangles.push(t);
+    const t={ids,normal:v1.clone(),material:group?.materialIndex||0,tile:geometry.type==='BoxGeometry'?Math.floor(i/6):null};triangles.push(t);
     for(let k=0;k<3;k++){const key=edgeKey(ids[k],ids[(k+1)%3]);if(!edges.has(key))edges.set(key,[]);edges.get(key).push(triangles.length-1);}
   }
   const parent=triangles.map((_,i)=>i),find=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;};
   for(const adjacent of edges.values())if(adjacent.length===2){const [a,b]=adjacent;
-    if(triangles[a].material===triangles[b].material&&triangles[a].normal.dot(triangles[b].normal)>.999999)parent[find(b)]=find(a);
+    // Broad support boxes are deliberately tiled for depth ordering. Keep each
+    // authored quad; a single merged bed can paint across equipment above it.
+    if((triangles[a].tile===null||triangles[a].tile===triangles[b].tile)&&triangles[a].material===triangles[b].material&&triangles[a].normal.dot(triangles[b].normal)>.999999)parent[find(b)]=find(a);
   }
   const regions=new Map();
   triangles.forEach((t,i)=>{const root=find(i);if(!regions.has(root))regions.set(root,{normal:t.normal,material:t.material,boundary:[]});
@@ -123,15 +125,38 @@ export class ColorfiguresRenderer {
         const depth=face.vertices.reduce((sum,id)=>sum+pts[id][2],0)/face.vertices.length;
         const norm=normals[i],sign=facing[i]?1:-1,light=sign*(-.35*norm.x+.55*norm.y+.76*norm.z);
         const shade=step3(light>.58?1:light>.04?.3:-1,.62,.12,materialColor(mat)),path=loops.map(loop=>sp(loop)).join('');
-        let edges='';
+        let edges='';const outlined=new Set();
         for(const edge of face.edges){const others=edge.neighbors.filter(j=>j!==i);
           if(!others.length||others.some(j=>facing[i]!==facing[j]||norm.dot(normals[j])<EDGE_COS)){
-            const a=pts[edge.a],b=pts[edge.b];if(Math.hypot(a[0]-b[0],a[1]-b[1])>.6)edges+=`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+            outlined.add(edgeKey(edge.a,edge.b));const a=pts[edge.a],b=pts[edge.b];if(Math.hypot(a[0]-b[0],a[1]-b[1])>.6)edges+=`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
           }
         }
         const opacity=mat.opacity??1;
-        parts.push({depth:mat.depthTest===false?Infinity:depth,order:object.renderOrder,
-          path,shade,opacity,edges,width:.65});faceCount++;
+        const candidate=object.geometry.userData.localDepthTiles&&loops.length===1&&loops[0].length===4?loops[0]:null;
+        const turns=candidate?.map((p,i)=>{const b=candidate[(i+1)%4],c=candidate[(i+2)%4];return (b[0]-p[0])*(c[1]-b[1])-(b[1]-p[1])*(c[0]-b[0]);});
+        const quad=turns&&(turns.every(v=>v>=0)||turns.every(v=>v<=0))?candidate:null;
+        const span=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+        const u=quad?Math.max(span(quad[0],quad[1]),span(quad[3],quad[2])):0,v=quad?Math.max(span(quad[0],quad[3]),span(quad[1],quad[2])):0;
+        if(quad&&(Math.max(u,v)>200||Math.max(u,v)>4*Math.min(u,v))&&Math.max(u,v)>24){
+          // Long faces need local depths too: their centres alone can put a
+          // nearby bed in front of the far end of a raised sleeper or rail.
+          const cols=Math.min(64,Math.ceil(u/24)),rows=Math.min(64,Math.ceil(v/24)),grid=[];
+          for(let y=0;y<=rows;y++)for(let x=0;x<=cols;x++){
+            const a=x/cols,b=y/rows,weights=[(1-a)*(1-b),a*(1-b),a*b,(1-a)*b];
+            const w=quad.reduce((sum,p,i)=>sum+p[3]*weights[i],0);
+            grid.push([0,1,2].map(axis=>quad.reduce((sum,p,i)=>sum+p[axis]*weights[i]*(axis===2?1:p[3]),0)/(axis===2?1:w)));
+          }
+          const boundary=face.loops[0].map((id,k)=>outlined.has(edgeKey(id,face.loops[0][(k+1)%4])));
+          for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+            const at=(a,b)=>grid[b*(cols+1)+a],cell=[at(x,y),at(x+1,y),at(x+1,y+1),at(x,y+1)];let strokes='';
+            for(const k of [0,1,2,3])if(boundary[k]&&[y===0,x===cols-1,y===rows-1,x===0][k]){
+              const a=cell[k],b=cell[(k+1)%4];strokes+=`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+            }
+            parts.push({depth:mat.depthTest===false?Infinity:cell.reduce((sum,p)=>sum+p[2],0)/4,order:object.renderOrder,path:sp(cell),shade,opacity,edges:strokes,width:.65});faceCount++;
+          }
+        }else{
+          parts.push({depth:mat.depthTest===false?Infinity:depth,order:object.renderOrder,path,shade,opacity,edges,width:.65});faceCount++;
+        }
       }
     };
     // Retain projected paths while the camera, material and geometry are

@@ -5,6 +5,14 @@ An original interactive atlas of **three engine–airframe pairs**, with selecta
 - [GitHub Pages](https://haitaowu12.github.io/engine-anatomy/)
 - [GPT Site](https://engine-anatomy.techiesea.chatgpt.site)
 
+## Why I built this
+
+I started my engineering career at Pratt & Whitney Canada, working on controls for turboshaft, turboprop and turbofan engine programmes. Much of my work was in full authority digital engine control (FADEC): control logic, analysis and verification. It took me a long time to understand how those logic gates connected with the engine’s mechanical parts, and how the engine fitted into the aircraft around it.
+
+Engine Anatomy grew out of wanting to make those connections visible. I can follow a shaft, sensor or fuel command through an interactive model, see how it fits into the wider system, and share some of what I worked on with my daughter.
+
+The LEGO Technic H175 has a personal place here. The real helicopter uses an engine from one of the programmes I worked on. My daughter and I assembled the LEGO model together and still play with it. Exploring its motor, gears and rotor-pitch mechanism is another way for us to learn together.
+
 Each deployment exposes `release.json` and an HTML build identifier. Compare those identifiers to establish whether hosts serve the same release.
 
 | Pair | Mechanical and control story |
@@ -14,6 +22,8 @@ Each deployment exposes `release.json` and an HTML build identifier. Compare tho
 | Direct-drive turbofan / jet aircraft | HPC/HPT on the HP shaft; fan/LPC/LPT on the LP shaft; distinct core and bypass streams. A demand-derived N1 reference controls fuel response and independent spool dynamics. |
 
 ## Illustrated spatial views
+
+The illustrated views are the main product baseline. I chose an ink-and-tone approach to make the machinery easier to read while keeping the real component relationships and working controls.
 
 The three engine studies and H175 mechanism study use an adaptation of April Zhu’s [Colorfigures](https://april-zhu.com/colorfigures) ink and three-tone drawing style. Three.js supplies geometry, cameras and component picking. The component graph, running plants, lessons, diagrams, inspection recipes and navigation retain their existing behavior.
 
