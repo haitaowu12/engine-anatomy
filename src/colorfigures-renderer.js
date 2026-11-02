@@ -24,13 +24,12 @@ export function prepareColorfiguresGeometry(geometry){
     v1.set(b[0]-a[0],b[1]-a[1],b[2]-a[2]);v2.set(c[0]-a[0],c[1]-a[1],c[2]-a[2]);v1.cross(v2);
     if(v1.lengthSq()<1e-20)continue;v1.normalize();
     const group=geometry.groups.find(g=>i>=g.start&&i<g.start+g.count);
-    const t={ids,normal:v1.clone(),material:group?.materialIndex||0,tile:geometry.type==='BoxGeometry'?Math.floor(i/6):null};triangles.push(t);
+    const t={ids,normal:v1.clone(),material:group?.materialIndex||0};triangles.push(t);
     for(let k=0;k<3;k++){const key=edgeKey(ids[k],ids[(k+1)%3]);if(!edges.has(key))edges.set(key,[]);edges.get(key).push(triangles.length-1);}
   }
   const parent=triangles.map((_,i)=>i),find=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;};
   for(const adjacent of edges.values())if(adjacent.length===2){const [a,b]=adjacent;
-    // Preserve the authored tiles used to order broad support surfaces.
-    if((triangles[a].tile===null||triangles[a].tile===triangles[b].tile)&&triangles[a].material===triangles[b].material&&triangles[a].normal.dot(triangles[b].normal)>.999999)parent[find(b)]=find(a);
+    if(triangles[a].material===triangles[b].material&&triangles[a].normal.dot(triangles[b].normal)>.999999)parent[find(b)]=find(a);
   }
   const regions=new Map();
   triangles.forEach((t,i)=>{const root=find(i);if(!regions.has(root))regions.set(root,{normal:t.normal,material:t.material,boundary:[]});
