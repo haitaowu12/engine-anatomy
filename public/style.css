@@ -45,3 +45,8 @@
 @media(max-width:550px){.presets{grid-template-columns:repeat(4,minmax(0,1fr))}}
 /* Connection reading follows the page; no nested scrolling is required to reach a circuit return or its selected component. */
 .scene-stage.diagram-mode{height:auto;min-height:0}.diagram-mode .scene-caption{position:relative;inset:auto}.diagram-mode .system-diagram{inset:auto}
+
+/* Switch between running-engine studies and the separate construction-toy mechanism study. */
+.study-switch{display:flex;align-items:center;gap:4px;flex-shrink:0}.study-switch a{font-size:12px;text-decoration:none;padding:10px 12px;border:1px solid transparent;border-radius:3px;white-space:nowrap}.study-switch a[aria-current="page"]{color:var(--accent);border-color:var(--line)}.study-switch a:hover,.study-switch a:focus-visible{background:#343238;color:#f1e8d6}.scene-shell>.circuit-tools{border-top:0;border-bottom:1px solid var(--line)}
+@media(max-width:1100px){header .qualification{display:none}}
+@media(max-width:560px){header{gap:10px;flex-wrap:wrap;padding:12px 0}.study-switch{order:3;width:100%;border-top:1px solid var(--line);padding-top:6px}.study-switch a{flex:1;text-align:center}}

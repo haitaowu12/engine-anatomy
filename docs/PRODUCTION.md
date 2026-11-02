@@ -1,10 +1,10 @@
-# Engine Anatomy 4.0: implementation and acceptance
+# Engine Anatomy 5.0: implementation and acceptance
 
 ## Release objective and evidence
 
-The release corrects the spatial meaning, airframe construction and navigation of the three synthetic engine–airframe studies. Physical anatomy uses an installed assembly; aircraft/system boundaries, circuit topology and control causality use explicit diagrams. [REVISION-4.md](REVISION-4.md) records the review and correction decisions. It is an educational anatomy product with tested mechanism relationships. It is not a specific manufacturer's complete parts catalog or engineering-analysis model.
+The release advances the authored geometry and framing of the three synthetic engine–airframe studies and adds a separate LEGO Technic H175 construction-toy mechanism study. Physical anatomy uses an installed assembly; aircraft/system boundaries, circuit topology and control causality use explicit diagrams. [REVISION-5.md](REVISION-5.md) records the current review and observed acceptance. [REVISION-4.md](REVISION-4.md) retains the preceding representation corrections. The H175 page follows its own documented mechanism contract in [H175-STUDY.md](H175-STUDY.md); it does not reuse the gas-turbine numerical plant.
 
-Implementation baseline: [`84752068db01034c61a4be5133fc8764c8018fab`](https://github.com/haitaowu12/engine-anatomy/tree/84752068db01034c61a4be5133fc8764c8018fab). The fixed-step equations in `plants.js` and `simulation.js` are preserved. `release.json` contains the build digest, product version, source baseline and pinned Three version. The digest covers application assets, source, scripts, documentation and dependency lock, so changes to bundled modules or evidence also change the release identity.
+Implementation baseline: [`98769a2a30e8354c5a7bdbd39539b18203ce0e2b`](https://github.com/haitaowu12/engine-anatomy/tree/98769a2a30e8354c5a7bdbd39539b18203ce0e2b). The fixed-step equations in `plants.js` and `simulation.js` are preserved. `release.json` contains the build digest, product version, source baseline and pinned Three version. The digest covers application assets, source, scripts, documentation and dependency lock, so changes to bundled modules or evidence also change the release identity. Every public HTML entry receives the same build metadata, and release checks follow the local dependencies of every entry page.
 
 ## Implemented content taxonomy
 

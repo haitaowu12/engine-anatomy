@@ -34,6 +34,9 @@ export function applyInstallation(m){
   n.location=boundary?boundary[0]:n.group==='airframe'?'Aircraft / driven load':'Engine assembly';
   n.locationNote=boundary?boundary[1]:n.group==='airframe'?'Original generic installation geometry; only the highlighted engine is simulated.':'Representative position on or within the engine. Dimensions, exact brackets and service routing vary by installation.';
   n.preferredCircuit=boundary?.[2];
+  if(n.id==='load.speed'){
+   n.location='Aircraft / driven load';n.locationNote=heli?'Mounted beside the main-rotor mast after the main reduction; shown with the driven rotor context.':'Mounted at the propeller drive after the reduction; distinct from the engine power-shaft pickup.';n.preferredPreset='aircraft';
+  }
   if(n.id.startsWith('oil.')||n.id==='chip')n.inspectionDirection=[-.4,.5,-1];
   else if(['fuel.filter','fuel.filter.cap','fuel.filter.element','fuel.shutoff','fuel.bypass','controller','fmu','fuel.pump','starter','starter.valve','ignition.exciter'].includes(n.id))n.inspectionDirection=[-.35,-.3,1];
   if(n.parentNodeId&&/\.cap$|\.element$/.test(n.id))n.anchor=[...m.nodes.find(p=>p.id===n.parentNodeId).anchor];

@@ -13,6 +13,25 @@ globalThis.devicePixelRatio=1;
 globalThis.ResizeObserver=class{observe(){}disconnect(){}};
 const controls=camera=>({target:new T.Vector3(),update(){camera.lookAt(this.target);},dispose(){}});
 const vector=object=>object.getWorldPosition(new T.Vector3()).toArray();
+for(const kind of ['helicopter','turboprop','turbofan'])test(`${kind}: case probes have physical feet and move with their actual removable casing`,()=>{
+ const display=new Display(),manifest=buildManifest(kind),view=createAtlasRenderer(new Element(),manifest,()=>{},{renderer:display,createControls:controls}),runner=createPlantRunner(kind),u=plantDefaults(kind);
+ view.setCutaway(false);view.render(runner.state,observePlant(kind,runner.state,u),u,false);const root=display.scene.children.find(o=>o.isGroup),parts=new Map();root.traverse(o=>{if(o.isGroup&&o.userData.id)parts.set(o.userData.id,o);});
+ for(const id of ['speed.g','speed.p','temperature','vibration','bleed','igniter']){
+  const probe=parts.get(id),mount=probe.userData.physicalMount,caseId=id==='bleed'?'compressor.casing':id==='igniter'?'combustor.casing':id==='temperature'&&kind==='turbofan'?'exhaust':'turbine.casing';assert.equal(mount.caseId,caseId);if(caseId!=='exhaust')assert(probe.parent.userData.inspection,'Probe must belong to the actual removable sector');
+  const base=new T.Vector3(...mount.base),axis=new T.Vector3(...mount.axis),ray=new T.Raycaster(base.clone().addScaledVector(axis,.6),axis.clone().negate(),0,.8),caseMeshes=[];parts.get(caseId).traverse(o=>{if(o.isMesh&&o.userData.id===caseId)caseMeshes.push(o);});
+  const hits=ray.intersectObjects(caseMeshes,false);assert(hits.length,id+': mount has no underlying pressure-case surface');assert(Math.abs(hits[0].distance-.6)<.04,id+': probe foot is detached from its case');
+  assert(ray.intersectObject(probe,true).length,'Mount metadata must describe real geometry');
+ }
+ const probe=parts.get('speed.g'),before=vector(probe);view.setInspection(1);root.updateMatrixWorld(true);assert.notDeepEqual(vector(probe),before,'Opening the casing left its probe suspended at the old position');view.setInspection(0);root.updateMatrixWorld(true);assert.deepEqual(vector(probe),before);view.dispose();
+});
+
+test('Main-rotor pickup hides with its mast, while selection and aircraft context restore a supported sensor',()=>{
+ const display=new Display(),host=new Element(),m=buildManifest('helicopter'),view=createAtlasRenderer(host,m,()=>{},{renderer:display,createControls:controls}),runner=createPlantRunner('helicopter'),u=plantDefaults('helicopter'),draw=()=>view.render(runner.state,observePlant('helicopter',runner.state,u),u,false);
+ draw();const root=display.scene.children.find(o=>o.isGroup),shown=id=>{const a=[];root.traverseVisible(o=>{if(o.isMesh&&o.userData.id===id)a.push(o);});return a;};
+ assert.equal(shown('load.speed').length,0);assert.equal(m.nodes.find(n=>n.id==='load.speed').location,'Aircraft / driven load');assert.equal(m.nodes.find(n=>n.id==='load.speed').preferredPreset,'aircraft');
+ view.select('load.speed');draw();assert(shown('load.speed').length&&shown('mast').length,'Direct selection must retain the sensing target');view.focus();draw();const anchor=new T.Vector3(...m.nodes.find(n=>n.id==='load.speed').anchor).project(display.camera);assert(Math.abs(anchor.x)<1&&Math.abs(anchor.y)<1,'Focus clipped the selected pickup');
+ view.returnView();view.setPreset('aircraft');draw();assert(shown('load.speed').length&&shown('mast').length);view.dispose();
+});
 // Conservative radial bounds from the actual triangles, including all instance
 // transforms and hidden section alternatives. Faces count, not just bore labels.
 function radialBounds(root,ids,span){let min=Infinity,max=0,triangles=0;const point=new T.Vector3(),instance=new T.Matrix4(),matrix=new T.Matrix4();

@@ -1,0 +1,37 @@
+import {H175_COMPONENTS,H175_SOURCES,initialH175State,advanceH175,driveStatus,h175Route} from './h175-state.js';
+import {bindH175PartNavigation} from './h175-navigation.js';
+const $=id=>document.getElementById(id);
+let state=initialH175State(),selected=h175Route(new URLSearchParams(location.search)).part,viewer,lastTime=null,lastUI=0,paused=false,failed=false;
+const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');$('reduce-motion').checked=motionQuery.matches;
+function component(){return H175_COMPONENTS.find(p=>p.id===selected);}
+function selectPart(id,{save=true,open=false}={}){const part=H175_COMPONENTS.find(p=>p.id===id);if(!part)return;selected=id;for(const b of document.querySelectorAll('.mechanism-nav [data-part]'))b.setAttribute('aria-pressed',String(b.dataset.part===id));$('view-kicker').textContent=part.eyebrow;$('view-title').textContent=part.name;$('part-description').textContent=part.description;$('part-try').textContent=part.try;$('part-boundary').textContent=part.boundary;const source=H175_SOURCES[part.source];$('part-source').href=source.url;$('part-source').textContent=source.title+' ↗';document.title=part.name+' · H175 | Engine Anatomy';if(id==='rotor')$('pitch-controls').open=true;if(id==='covers'){$('access-controls').open=true;if(open){state.cowl=1;syncInputs();}}viewer?.setView(part.view);viewer?.render(state,true);if(save){const u=new URL(location.href);u.searchParams.set('part',id);if(u.href!==location.href)history.pushState({part:id},'',u);}updateUI();}
+bindH175PartNavigation(document,selectPart);
+addEventListener('popstate',()=>selectPart(h175Route(new URLSearchParams(location.search)).part,{save:false}));
+const rangeBindings=[['collective','collective'],['cyclic-fore','cyclicFore'],['cyclic-side','cyclicSide'],['cowl-opening','cowl'],['door-opening','doors'],['inspection','inspection']];
+for(const [id,key]of rangeBindings)$(id).addEventListener('input',()=>{state[key]=Number($(id).value)/100;updateUI();viewer?.render(state,true);});
+for(const [id,key]of [['rotor-drive','rotor'],['gear-drive','gearDrive'],['winch-drive','winchDrive']])$(id).addEventListener('change',()=>{state[key]=$(id).value;updateUI();viewer?.render(state,true);});
+$('motor-toggle').addEventListener('click',()=>{state.motor=!state.motor;lastTime=null;updateUI();viewer?.render(state,true);});
+$('pause-motion').addEventListener('click',()=>{paused=!paused;lastTime=null;updateUI();});
+$('step-motion').addEventListener('click',()=>{paused=true;state=advanceH175(state,.1);updateUI();viewer?.render(state,true);});
+$('reduce-motion').addEventListener('change',()=>{lastTime=null;updateUI();});motionQuery.addEventListener('change',e=>{$('reduce-motion').checked=e.matches;updateUI();});
+$('centre-cyclic').addEventListener('click',()=>{state.cyclicFore=0;state.cyclicSide=0;syncInputs();updateUI();viewer?.render(state,true);});
+$('reassemble').addEventListener('click',()=>{state.inspection=0;state.cowl=0;state.doors=0;syncInputs();updateUI();viewer?.render(state,true);});
+for(const mode of ['iso','side','top'])$('camera-'+mode).addEventListener('click',()=>viewer?.setCamera(mode));$('camera-in').addEventListener('click',()=>viewer?.zoom(1.18));$('camera-out').addEventListener('click',()=>viewer?.zoom(1/1.18));$('camera-reset').addEventListener('click',()=>viewer?.reset());
+function syncInputs(){for(const [id,key]of rangeBindings)$(id).value=Math.round(state[key]*100);$('rotor-drive').value=state.rotor;$('gear-drive').value=state.gearDrive;$('winch-drive').value=state.winchDrive;}
+function updateUI(){
+ const held=paused||$('reduce-motion').checked||state.inspection>0;
+ $('motor-toggle').setAttribute('aria-pressed',String(state.motor));$('motor-toggle').innerHTML=state.motor?'<span aria-hidden="true">■</span> Stop electric motor':'<span aria-hidden="true">▶</span> Start electric motor';$('power-indicator').textContent=state.motor?'ON':'OFF';$('power-indicator').classList.toggle('on',state.motor);
+ $('pause-motion').textContent=paused?'Resume motion':'Pause motion';$('pause-motion').setAttribute('aria-pressed',String(paused));$('step-motion').disabled=!state.motor||state.inspection>0;
+ $('motion-note').textContent=state.inspection>0?'Inspection pause · reassemble to resume powered motion':!state.motor?'Motor off · manual controls remain available':held?'Motor on · motion paused; use Step animation':'Motor on · selected branches are driven';
+ for(const branch of ['rotor','gear','winch']){const status=driveStatus(state,branch);$(branch+'-status').textContent=status;$('map-'+branch).textContent=status;const active=state.motor&&state.inspection===0&&(branch==='rotor'?state.rotor!=='off':state[branch==='gear'?'gearDrive':'winchDrive']!=='neutral');$('branch-'+branch).classList.toggle('active',active);}
+ $('map-motor').textContent=state.motor?'On · common drive':'Off';$('collective-value').textContent=Math.round(state.collective*100)+'%';$('cyclic-fore-value').textContent=state.cyclicFore===0?'Centred':Math.abs(Math.round(state.cyclicFore*100))+'% '+(state.cyclicFore>0?'forward':'aft');$('cyclic-side-value').textContent=state.cyclicSide===0?'Centred':Math.abs(Math.round(state.cyclicSide*100))+'% '+(state.cyclicSide>0?'right':'left');
+ for(const [id,key]of [['cowl-value','cowl'],['door-value','doors']])$(id).textContent=state[key]===0?'Closed':state[key]===1?'Open':Math.round(state[key]*100)+'% open';$('inspection-value').textContent=state.inspection===0?'Assembled':Math.round(state.inspection*100)+'% separated';$('reassemble').disabled=!state.inspection&&!state.cowl&&!state.doors;
+ $('h175-workbench').dataset.part=selected;$('h175-workbench').dataset.gear=state.gear.toFixed(4);$('h175-workbench').dataset.winch=state.winch.toFixed(4);$('h175-workbench').dataset.inspection=state.inspection.toFixed(2);
+ if(failed)$('h175-viewer').innerHTML=fallbackHTML();
+}
+function fallbackHTML(){return `<div class="fallback-card"><p>MECHANISM RELATIONSHIPS</p><h3>${component().name}</h3><p>3D rendering is unavailable in this browser. The controls and the source-backed mechanism explanation remain available below.</p><div class="fallback-grid"><div><strong>Electric motor</strong><span>${state.motor?'On':'Off'} → selected mechanical branches</span></div><div><strong>Rotor branch</strong><span>${driveStatus(state,'rotor')}</span></div><div><strong>Landing gear</strong><span>${driveStatus(state,'gear')} · ${Math.round(state.gear*100)}% retracted</span></div><div><strong>Winch</strong><span>${driveStatus(state,'winch')} · ${Math.round(state.winch*100)}% paid out</span></div></div></div>`;}
+selectPart(selected,{save:false});syncInputs();
+try{const {createH175Viewer}=await import('./h175-renderer.js');viewer=await createH175Viewer($('h175-viewer'),{onSelect:id=>selectPart(id)});$('render-status').textContent=viewer.backend==='SVG'?'SVG geometry':'WebGL · studio lighting';viewer.setView(component().view);viewer.render(state,true);}
+catch(error){failed=true;$('render-status').textContent='Mechanism diagram';for(const id of ['camera-iso','camera-side','camera-top','camera-in','camera-out','camera-reset'])$(id).disabled=true;updateUI();console.error('H175 geometry unavailable',error);}
+function frame(now){const dt=lastTime===null?0:Math.min(.1,(now-lastTime)/1000);lastTime=now;if(!paused&&!$('reduce-motion').checked)state=advanceH175(state,dt);viewer?.render(state);if(now-lastUI>160){updateUI();lastUI=now;}requestAnimationFrame(frame);}requestAnimationFrame(frame);
+addEventListener('pagehide',()=>{state.motor=false;lastTime=null;});

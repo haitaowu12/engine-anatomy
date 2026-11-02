@@ -30,6 +30,21 @@ function build(kind,lowDetail){
 }
 
 const loftFeatures=new Set(['fuselage','tail-boom','transmission-fairing','installed-nacelle','context-engine-nacelle','context-prop-spinner']);
+for(const kind of ['helicopter','turboprop','turbofan'])test(`${kind}: curved glazing has matching physical apertures in the fuselage`,()=>{
+ const {meshes,dispose}=build(kind,true);
+ try{
+  const body=meshes.find(o=>o.userData.airframeFeature==='fuselage'),windows=meshes.filter(o=>o.userData.conformsToSkin),z=AIRFRAME_LAYOUT[kind].bodyZ||0;
+  assert(windows.length>=8,'Windshields and both sets of cabin windows are surface patches');
+  assert.equal(body.userData.windowApertures,windows.length);
+  for(const window of windows){const p=window.geometry.attributes.position;
+   assert(p.count>40,'Glazing must have enough surface samples to bend with the fuselage');
+   for(const i of [16,23,31,39,45]){const point=new T.Vector3().fromBufferAttribute(p,i),side=Math.sign(point.z-z),ray=new T.Raycaster(point,new T.Vector3(0,0,-side),0,.25);
+    assert.equal(ray.intersectObject(body).length,0,window.userData.airframeFeature+': a solid skin face blocks the physical window aperture');
+   }
+   assert(meshes.some(o=>o.userData.airframeFeature===window.userData.airframeFeature+'-gasket'),'Glazing has no enclosing frame');
+  }
+ }finally{dispose();}
+});
 for(const lowDetail of [true,false])for(const kind of ['helicopter','turboprop','turbofan'])test(`${kind} ${lowDetail?'SVG':'full'} geometry: SVG projection culls reverse faces of closed aircraft skins`,()=>{
  const {scene,meshes,camera,dispose}=build(kind,lowDetail);
  try{
@@ -90,6 +105,18 @@ function containsPoint(x,y,a,b,c){
  const u=((b.x-x)*(c.y-y)-(b.y-y)*(c.x-x))/area,v=((c.x-x)*(a.y-y)-(c.y-y)*(a.x-x))/area;
  return u>1e-6&&v>1e-6&&u+v<1-1e-6;
 }
+for(const kind of ['helicopter','turboprop','turbofan'])test(`${kind}: actual SVG painter ordering keeps visible glazing continuous`,()=>{
+ const {scene,camera,dispose}=productionScene(kind);
+ try{
+  const visible=[];scene.traverseVisible(o=>{if(o.isMesh)visible.push(o);});
+  const windows=new Set(visible.filter(o=>o.userData.conformsToSkin).map(o=>o.id)),objects=new Map(visible.map(o=>[o.id,o])),faces=new Projector().projectScene(scene,camera,true,true).elements.filter(f=>f.normalModel),windowFaces=faces.filter(f=>windows.has(f.id)),overpainted=[];let samples=0;
+  for(let i=2;i<windowFaces.length;i+=5){const f=windowFaces[i],x=(f.v1.positionScreen.x+f.v2.positionScreen.x+f.v3.positionScreen.x)/3,y=(f.v1.positionScreen.y+f.v2.positionScreen.y+f.v3.positionScreen.y)/3,ray=new T.Raycaster();ray.setFromCamera(new T.Vector2(x,y),camera);
+   if(ray.intersectObjects(visible,false)[0]?.object.id!==f.id)continue;samples++;
+   const last=faces.findLast(p=>containsPoint(x,y,p.v1.positionScreen,p.v2.positionScreen,p.v3.positionScreen));if(last?.id!==f.id)overpainted.push(objects.get(last?.id)?.userData.airframeFeature||objects.get(last?.id)?.userData.id||'missing face');
+  }
+  assert(samples>=25,'Sample enough nearest visible glazing faces');assert.deepEqual(overpainted,[],'Opaque body triangles overpaint the nearer window in the actual SVG backend');
+ }finally{dispose();}
+});
 for(const kind of ['helicopter','turboprop','turbofan'])test(`${kind}: closed aircraft cowl wins actual SVG painter ordering and internal surfaces return for inspection`,()=>{
  const {view,scene,camera,dispose}=productionScene(kind);
  try{
