@@ -73,3 +73,5 @@ The build bundles pinned `three@0.180.0`, OrbitControls, SVGRenderer, Projector 
 The values and dimensions are **original synthetic educational assumptions**. They are not manufacturer engine maps, certified control logic, production CAD or calibrated aircraft performance. Service routes and construction explain mechanisms; oil/electrical/combustion fields, startup/shutdown, real faults, surge, feather/reverse, stress/life and flight dynamics are not numerically solved. The source-specific alternatives are comparisons, not claims that every engine in a family has the selected architecture.
 
 MIT for original code/assets. Three.js's MIT notice and the font licenses are bundled. Reference documents remain with their publishers; their artwork and manual passages are not copied into this product.
+
+Built by [Tony Wu](https://haitaowu12.github.io/tony-wu-home/) · [More projects](https://haitaowu12.github.io/tony-wu-home/#work).
