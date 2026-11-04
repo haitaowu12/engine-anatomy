@@ -55,6 +55,8 @@
 .aircraft-style[hidden],#realistic-aircraft[hidden]{display:none}
 .aircraft-style button{min-height:36px;padding:6px 11px;white-space:nowrap}
 #realistic-aircraft{position:absolute;inset:76px 0 0;width:100%;height:calc(100% - 76px);border:0;background:#f4f1e8}
+/* Keep the illustrated viewport measurable when a shared link opens in Realistic. */
+.realistic-mode #canvas-host[hidden]{display:block!important;visibility:hidden}
 .realistic-mode .scene-event,.realistic-mode .scene-pin{display:none}
 @media(max-width:550px){.aircraft-style button{min-height:44px}}
 

@@ -2,7 +2,7 @@
 export const AIRFRAME_LAYOUT={
  helicopter:{mastX:-6.3,tailX:20.5,tailRotorY:1.78,rotorRadius:18,center:[0,-1,0],span:36,camera:[-23,13,34]},
  turboprop:{center:[7,.3,-8.8],span:64,camera:[-25,19,34],bodyZ:-8.8,oppositeEngineZ:-17.6},
- turbofan:{center:[8,1.5,-10],span:55,camera:[-38,18,36],bodyZ:-10,oppositeEngineZ:-20}
+ turbofan:{center:[8,1.5,-10],span:55,camera:[-52,15,19],bodyZ:-10,oppositeEngineZ:-20}
 };
 
 export function buildAirframeGeometry(a,m){
@@ -128,12 +128,16 @@ export function buildAirframeGeometry(a,m){
   const fuselage=loft('airframe.fuselage',[[nose,y-1.0,z,.03,.03],[nose+.44,y-.88,z,ry*.16,rz*.24],[nose+1.25,y-.64,z,ry*.42,rz*.42],[nose+2.65,y-.35,z,ry*.71,rz*.68],[nose+4.0,y-.10,z,ry*.87,rz*.86],[nose+6.3,y,z,ry,rz],[tail-12,y,z,ry,rz],[tail-7,y+.15,z,ry*.75,rz*.72],[tail-2,y+.55,z,.55,.42],[tail,y+.65,z,.035,.035]],skin,'fuselage');
   for(const side of [-1,1]){
    skinWindow('airframe.cockpit',fuselage,[[nose+2.50,side*.10],[nose+4.35,side*.19],[nose+4.82,side*.91],[nose+3.23,side*1.05]],'windscreen-'+side);
-   skinWindow('airframe.cockpit',fuselage,[[nose+4.52,side*.29],[nose+6.02,side*.43],[nose+6.12,side*1.17],[nose+5.0,side*1.11]],'side-windscreen-'+side);
+   skinWindow('airframe.cockpit',fuselage,[[nose+4.69,side*.34],[nose+6.02,side*.45],[nose+6.12,side*1.12],[nose+5.02,side*1.08]],'side-windscreen-'+side);
    for(let i=0;i<(prop?20:24);i++){const x=nose+8.5+i*(prop?2.15:1.9);skinWindow('airframe.cockpit',fuselage,[[x-.28,side*1.12],[x+.28,side*1.12],[x+.28,side*1.48],[x-.28,side*1.48]],'cabin-window-'+side+'-'+i);}
    for(const x of [nose+7,tail-10.6])skinSeam('airframe.fuselage',fuselage,[[x,side*.68],[x,side*2.2],[x+1.05,side*2.2],[x+1.05,side*.68],[x,side*.68]],'cabin-door-'+side+'-'+x);
-   const wy=prop?2.55:2.65,rootX=prop?1.1:-.6,semi=prop?28.42:28.3,sweep=prop?1.5:13.0,rootChord=prop?6.4:11.0,tipChord=prop?2.7:2.7;
-   foil('wing',{root:[rootX,wy,z],span:semi,rootChord,tipChord,sweep,dihedral:prop?.018:.046,side,thickness:.12},skin,'wing-'+side);
-   const seam=[.2,.5,.92].map(t=>[rootX+sweep*t+(rootChord+(tipChord-rootChord)*t)*.76,wy+semi*t*(prop?.018:.046)+.1,z+side*semi*t]);line('wing',seam,trim,.018,'trailing-control-seam-'+side);
+   const wy=prop?2.55:2.65,rootX=prop?1.1:-.6,semi=prop?28.42:28.3,sweep=prop?1.5:13.0,rootChord=prop?6.4:11.0,tipChord=2.7,dihedral=prop?.018:.046;
+   foil('wing',{root:[rootX,wy,z],span:semi,rootChord,tipChord,sweep,dihedral,side,thickness:.12},skin,'wing-'+side);
+   if(!prop){
+    const tipX=rootX+sweep,tipY=wy+semi*dihedral,tipZ=z+side*semi;
+    foil('wing',{root:[tipX+.28,tipY-.31,tipZ],span:1.5,rootChord:2.25,tipChord:.69,sweep:.65,vertical:true,thickness:.067},trim,'tip-fence-'+side);
+   }
+   const seam=[.2,.5,.92].map(t=>[rootX+sweep*t+(rootChord+(tipChord-rootChord)*t)*.76,wy+semi*t*dihedral+.1,z+side*semi*t]);line('wing',seam,trim,.018,'trailing-control-seam-'+side);
    foil('airframe.tail',{root:[tail-8,prop?y+9.0:y+.7,z],span:prop?8.5:10.0,rootChord:prop?5.0:6.8,tipChord:2.1,sweep:prop?1.5:4.5,side,dihedral:.03,thickness:.09},skin,'tailplane-'+side);
   }
   foil('airframe.tail',{root:[tail-11,y+.4,z],span:prop?8.6:10.4,rootChord:prop?8.0:10.2,tipChord:prop?3.0:3.1,sweep:prop?3.0:6.0,vertical:true,thickness:.09},skin,'vertical-fin');
@@ -157,7 +161,16 @@ export function buildAirframeGeometry(a,m){
   if(prop){
    mark(cylinder('airframe.companion',[-7.2,0,ez],[-6.1,0,ez],.1,C.silver),'context-prop-shaft');
    loft('airframe.companion',[[-7.65,0,ez,.03,.03],[-7.3,0,ez,.36,.36],[-6.7,0,ez,.39,.39]],skin,'context-prop-spinner');
-   for(let i=0;i<4;i++){const q=i*Math.PI/2,o=mesh('airframe.companion',new T.BoxGeometry(.13,3.35,.42),trim,[-7.2,Math.cos(q)*1.95,ez+Math.sin(q)*1.95]);o.rotation.x=q;mark(o,'context-prop-blade');}
+   const blade=new T.Shape();
+   blade.moveTo(-.10,.22);blade.quadraticCurveTo(-.31,1.46,-.30,3.17);
+   blade.quadraticCurveTo(-.29,3.62,-.07,3.68);blade.quadraticCurveTo(.12,3.65,.14,3.21);
+   blade.quadraticCurveTo(.28,1.40,.13,.22);blade.closePath();
+   const bladeShape=new T.ExtrudeGeometry(blade,{depth:.07,bevelEnabled:true,bevelThickness:.021,bevelSize:.021,bevelSegments:1,curveSegments:5});
+   bladeShape.rotateY(Math.PI/2);
+   for(let i=0;i<4;i++){
+    const o=mesh('airframe.companion',bladeShape.clone(),trim,[-7.2,0,ez]);o.rotation.x=i*Math.PI/2;mark(o,'context-prop-blade');
+   }
+   bladeShape.dispose();
   }
   // Airframe context uses retracted gear. There is no ground pose or gear
   // extension simulation, and the propeller disc therefore cannot imply a
