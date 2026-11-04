@@ -44,7 +44,10 @@ export function applyInstallation(m){
  if(heli){
   for(const id of ['mast','rotor','swashplate','load.speed']){const n=m.nodes.find(n=>n.id===id);if(n)n.anchor[0]=AIRFRAME_LAYOUT.helicopter.mastX;}
   m.nodes.find(n=>n.id==='pitch.control').anchor=[AIRFRAME_LAYOUT.helicopter.mastX,5.2,0];
-  for(const id of ['tail.rotor','tail.gearbox']){const n=m.nodes.find(n=>n.id===id);if(n)n.anchor[0]=AIRFRAME_LAYOUT.helicopter.tailX;}
+  for(const id of ['tail.rotor','tail.gearbox']){
+   const n=m.nodes.find(n=>n.id===id);
+   if(n)n.anchor=[AIRFRAME_LAYOUT.helicopter.tailX,AIRFRAME_LAYOUT.helicopter.tailRotorY,id==='tail.rotor'?.75:0];
+  }
   const tailDrive=m.nodes.find(n=>n.id==='tail.drive');tailDrive.anchor=[14,-2.5,0];tailDrive.explanation='The faster tail drive starts beside the slower main-drive shaft, then a short two-joint offset section centers the long shaft inside the tapering tail boom. The tail gearbox turns drive to the anti-torque rotor. Couplings are schematic and the plant uses the declared ideal constant gear ratio; joint-angle ripple, shaft flex and torsional vibration are not solved.';
   m.nodes.find(n=>n.id==='airframe').anchor=[-3,-3.5,0];const exhaust=m.nodes.find(n=>n.id==='exhaust');exhaust.name='Side exhaust ducts & collector';exhaust.motion='Stationary ducts; flow markers are explanatory.';exhaust.anchor=[3.75,.65,3.15];exhaust.explanation='Residual gas leaves through representative lateral outlets ahead of the aft reduction. The turned discharge avoids sending exhaust into the gearbox or tail drive. Duct shapes and flow division are original explanatory choices, not a specific engine installation; residual exhaust thrust and branch flow are not calculated.';
  }else{
@@ -59,7 +62,7 @@ export function applyInstallation(m){
  add('airframe.landing',heli?'Landing skids':'Retracted gear doors','Landing supports and their attachment identify the airframe. Gear extension, suspension and ground dynamics are outside this engine study.',heli?[-3,-6,0]:[6,1,AIRFRAME_LAYOUT[m.kind].bodyZ]);
  add('airframe.mounts',heli?'Engine deck & mounts':'Engine pylons & mounts','Structural mounts carry engine loads into the airframe. They do not transmit a rotating shaft connection into the wing. Exact load paths and mount design depend on the installation.',heli?[.5,-1.7,0]:[1,2.7,0]);
  add('airframe.nacelle','Studied engine nacelle / cowling','The closed aircraft cowling encloses the engine and its installed accessories. '+(heli?'Separate lateral exhaust openings sit ahead of the reduction. ':'')+'Whole-aircraft view can open it with Cutaway; Engine assembly studies the hardware inside. This original envelope is not a manufacturer nacelle or an engine pressure casing.',[0,0,0]);
- if(!heli)add('airframe.companion','Far engine · exterior context only','This closed pod establishes a coherent two-engine airframe silhouette. Its internals, output, condition and controls are not separately simulated. The near engine remains the single engine under study.',[0,0,AIRFRAME_LAYOUT[m.kind].oppositeEngineZ]);
+ if(!heli)add('airframe.companion','Far engine · exterior context only','These closed pods show the other engines in the illustrated airframe. Their internals, output, condition and controls are not separately simulated. The near engine remains the single engine under study.',[0,0,AIRFRAME_LAYOUT[m.kind].oppositeEngineZ]);
  return m;
 }
 export function isPhysicalNode(n){return !!n&&n.representation!=='interface';}

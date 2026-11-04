@@ -1,15 +1,13 @@
-// Original teaching airframes: Bell 412 cabin/boom, Dash 8 high wing/T-tail,
-// and 737 swept-wing proportions. References and deliberate engine/rotor
-// simplifications are recorded in docs/SOURCES.md; these are not type CAD.
+// Illustrated H175, Dash 8 and A340 airframe cues around the teaching installations.
 export const AIRFRAME_LAYOUT={
- helicopter:{mastX:-6.3,tailX:20.5,rotorRadius:18,center:[0,-1,0],span:42,camera:[-22,18,34]},
+ helicopter:{mastX:-6.3,tailX:20.5,tailRotorY:1.78,rotorRadius:18,center:[0,-1,0],span:36,camera:[-23,13,34]},
  turboprop:{center:[7,.3,-8.8],span:64,camera:[-25,19,34],bodyZ:-8.8,oppositeEngineZ:-17.6},
- turbofan:{center:[8,1.5,-10],span:66,camera:[-29,22,37],bodyZ:-10,oppositeEngineZ:-20}
+ turbofan:{center:[8,1.5,-10],span:55,camera:[-38,18,36],bodyZ:-10,oppositeEngineZ:-20}
 };
 
 export function buildAirframeGeometry(a,m){
  const {T,C,mesh,cylinder,pipe,box,lowDetail=false}=a,layout=AIRFRAME_LAYOUT[m.kind],heli=m.kind==='helicopter',prop=m.kind==='turboprop';
- const skin=0xcdd8d6,trim=0x426575,glass=0x213f50,tyre=0x26343a;
+ const skin=heli?0xdeb95e:0xe0ddd0,trim=heli?0x815133:0x426575,glass=0x213f50,tyre=0x26343a;
  const loftSamplers=new WeakMap(),windowBodies=[];
  const mark=(o,feature)=>{o.userData.airframeFeature=feature;o.userData.airframeContext=true;return o;};
  // Closed skins have outward winding and cull their back faces. SVGRenderer
@@ -38,10 +36,13 @@ export function buildAirframeGeometry(a,m){
  }
  // Glazing and seams follow the exact fuselage surface. A flat four-corner
  // patch cut through the curved skin and became ragged black shards in SVG.
- function skinPoint(body,x,angle,offset=.045){
+ function loftSection(body,x){
   const {centers,radii}=loftSamplers.get(body);let lo=0,hi=1;
   for(let i=0;i<24;i++){const t=(lo+hi)/2;if(centers.getPoint(t).x<x)lo=t;else hi=t;}
-  const t=(lo+hi)/2,c=centers.getPoint(t),r=radii.getPoint(t);
+  const t=(lo+hi)/2;return [centers.getPoint(t),radii.getPoint(t)];
+ }
+ function skinPoint(body,x,angle,offset=.045){
+  const [c,r]=loftSection(body,x);
   return [c.x,c.y+(Math.max(.008,r.y)+offset)*Math.cos(angle),c.z+(Math.max(.008,r.z)+offset)*Math.sin(angle)];
  }
  function skinWindow(id,body,corners,feature){
@@ -95,30 +96,39 @@ export function buildAirframeGeometry(a,m){
  function wheel(id,pos,r,width,feature){const o=mesh(id,new T.CylinderGeometry(r,r,width,lowDetail?12:24),tyre,pos);o.rotation.x=Math.PI/2;mark(o,feature);const hub=mesh(id,new T.CylinderGeometry(r*.46,r*.46,width+.035,16),C.silver,pos);hub.rotation.x=Math.PI/2;mark(hub,feature);}
  function line(id,points,color,r,feature){return mark(pipe(id,points,color,r),feature);}
  if(heli){
-  const fuselage=loft('airframe.fuselage',[[-15,-3.8,0,.04,.04],[-14,-3.8,0,1.45,1.8],[-11.6,-3.5,0,2.8,2.9],[-7,-3.45,0,2.7,3.0],[-1,-3.3,0,2.65,2.9],[3,-2.9,0,1.8,1.7],[6,-2.6,0,.9,.9]],skin,'fuselage');
+  const fuselage=loft('airframe.fuselage',[[-16.9,-4.65,0,.045,.045],[-16.4,-4.62,0,.68,1.05],[-15.0,-4.36,0,1.28,1.96],[-13.8,-3.98,0,1.92,2.42],[-12.4,-3.55,0,2.6,2.80],[-10.3,-3.25,0,2.97,3.03],[-7,-3.19,0,3.02,3.13],[-1,-3.20,0,2.99,3.13],[1.8,-3.05,0,2.62,2.88],[4,-2.78,0,1.74,2.00],[6,-2.60,0,.89,.90]],skin,'fuselage');
   loft('airframe.fuselage',[[3,-2.65,0,1.35,1.3],[8,-2.5,0,.88,.8],[15,-2.5,0,.48,.43],[20.5,-2.5,0,.24,.25]],skin,'tail-boom');
   for(const side of [-1,1]){
-   skinWindow('airframe.cockpit',fuselage,[[-13.7,side*.57],[-10.15,side*.5],[-10.15,side*1.51],[-13.7,side*1.61]],'windscreen-'+side);
-   skinWindow('airframe.cockpit',fuselage,[[-9.75,side*.63],[-6.9,side*.67],[-6.75,side*1.62],[-9.75,side*1.62]],'pilot-window-'+side);
-   for(const x of [-5.7,-2.8])skinWindow('airframe.cockpit',fuselage,[[x,side*.74],[x+2.2,side*.74],[x+2.2,side*1.6],[x,side*1.6]],'cabin-window-'+side+'-'+x);
-   skinSeam('airframe.fuselage',fuselage,[[-6.35,side*.55],[-6.35,side*2.43],[.25,side*2.43],[.25,side*.55],[-6.35,side*.55]],'cabin-door-'+side);
-   const handle=skinPoint(fuselage,-.35,side*1.77,.08);line('airframe.fuselage',[[handle[0]-.27,handle[1],handle[2]],[handle[0]+.27,handle[1],handle[2]]],trim,.04,'door-handle-'+side);
-   line('airframe.landing',[[-12.2,-6.3,side*3.05],[-11.3,-7,side*3.1],[5.6,-7,side*3.1],[6.3,-6.9,side*3.1]],trim,.115,'skid-'+side);
-   for(const x of [-8.5,2.2])mark(cylinder('airframe.landing',[x,-5,side*1.8],[x,-7,side*3.1],.1,C.silver),'skid-strut-'+side);
-   foil('airframe.tail',{root:[15,-2.2,0],span:3.3,rootChord:2.7,tipChord:1.2,sweep:.7,side,thickness:.08},skin,'tailplane-'+side);
+   const pane=(points,feature)=>skinWindow('airframe.cockpit',fuselage,points.map(([x,t])=>[x,side*t]),feature+'-'+side);
+   pane([[-14.8,.10],[-12.5,.095],[-12.65,1.39],[-14.22,1.28]],'windscreen');
+   pane([[-12.25,.88],[-10.75,.83],[-10.81,1.63],[-12.57,1.64]],'pilot-window');
+   pane([[-14.4,1.80],[-13.05,1.75],[-13.14,2.10],[-14.15,2.18]],'chin-window');
+   for(const [i,x,w] of [[1,-9.9,1.70],[2,-7.53,2.42],[3,-4.46,1.46]])pane([[x,.96],[x+w,.94],[x+w-.12,1.62],[x+.08,1.65]],'cabin-window-'+i);
+   skinSeam('airframe.fuselage',fuselage,[[-7.94,side*.80],[-4.75,side*.80],[-4.7,side*2.23],[-7.94,side*2.23],[-7.94,side*.80]],'cabin-door-'+side);
+   const handle=skinPoint(fuselage,-6.9,side*1.82,.08);line('airframe.fuselage',[[handle[0]-.23,handle[1],handle[2]],[handle[0]+.23,handle[1],handle[2]]],trim,.035,'door-handle-'+side);
+   loft('airframe.landing',[[-6.42,-5.61,side*2.58,.03,.03],[-5.70,-5.68,side*2.77,.41,.53],[-3.4,-5.68,side*2.77,.40,.54],[-1.92,-5.59,side*2.58,.03,.04]],skin,'wheel-fairing-'+side);
+   mark(cylinder('airframe.landing',[-3.45,-5.53,side*2.32],[-3.43,-6.90,side*2.56],.12,C.silver),'main-gear-strut');
+   wheel('airframe.landing',[-3.43,-6.92,side*2.56],.58,.45,'main-wheel');
+   foil('airframe.tail',{root:[16.8,-1.95,0],span:3.3,rootChord:2.1,tipChord:1.03,sweep:.58,side,thickness:.08},trim,'tailplane-'+side);
   }
-  foil('airframe.tail',{root:[17,-2.5,0],span:4.3,rootChord:3.3,tipChord:1.2,sweep:2.0,vertical:true,thickness:.08},skin,'vertical-fin');
-  // An engine deck and actual mounts connect accessories/case to the airframe.
-  loft('airframe.mounts',[[-8.4,-.8,0,.04,.04],[-7.7,-.35,0,1.25,.95],[-6.35,.55,0,2.0,1.05],[-5.68,-.65,0,.05,.05]],skin,'transmission-fairing');
-  const deckCover=loft('airframe.nacelle',[[-5.57,0,0,1.22,1.22],[-4.5,-.1,0,1.85,1.8],[-1.8,-.15,0,1.95,1.9],[1.8,-.15,0,1.95,1.9],[3.6,-.1,0,2.25,2.2],[5.8,0,0,2.3,2.3],[6.45,0,0,.85,.85]],skin,'installed-nacelle',[c=>Math.abs(c[0]-3.75)<.52&&c[1]>-.1&&c[1]<1.15&&Math.abs(c[2])>1.25]);deckCover.userData.installationCover=true;
+  mark(cylinder('airframe.landing',[-12.43,-5.72,0],[-12.31,-7.03,0],.11,C.silver),'nose-gear-strut');
+  for(const z of [-.25,.25])wheel('airframe.landing',[-12.31,-7.06,z],.44,.29,'nose-wheel');
+  foil('airframe.tail',{root:[16.8,-2.5,0],span:4.62,rootChord:4.05,tipChord:1.22,sweep:2.80,vertical:true,thickness:.08},skin,'vertical-fin');
+  // The forward transmission fairing meets the removable engine cowling.
+  // The mast passes through a dedicated opening in the forward skin.
+  loft('airframe.mounts',[[-10.8,-.50,0,.035,.036],[-9.6,-.11,0,.62,1.02],[-8.1,.27,0,1.34,1.58],[-6.65,.41,0,1.49,1.52],[-5.57,0,0,1.22,1.22]],skin,'transmission-fairing',
+   [c=>Math.abs(c[0]-layout.mastX)<.53&&Math.abs(c[2])<.45]);
+  const deckCover=loft('airframe.nacelle',[[-5.57,0,0,1.22,1.22],[-4.5,-.1,0,1.85,1.8],[-1.8,-.15,0,1.95,1.9],[1.8,-.15,0,1.95,1.9],[3.6,-.1,0,2.25,2.2],[5.8,0,0,2.3,2.3],[6.45,0,0,.85,.85]],skin,'installed-nacelle',[c=>Math.abs(c[0]-3.75)<.52&&c[1]>-.1&&c[1]<1.15&&Math.abs(c[2])>1.25]);
+  deckCover.userData.installationCover=true;
   for(const side of [-1,1]){const seam=skinSeam('airframe.nacelle',deckCover,[[-3.8,side*.28],[-3.8,side*2.2],[1.8,side*2.2],[1.8,side*.28],[-3.8,side*.28]],'engine-access-panel-'+side);seam.userData.installationCover=true;}
   const deck=mark(box('airframe.mounts',[.5,-1.78,0],[10.8,.16,3.7],trim),'engine-deck');deck.userData.enclosedByCowling=true;
   for(const x of [-3.9,2.8])for(const z of [-.95,.95])mark(cylinder('airframe.mounts',[x,-.72,z*.75],[x,-1.7,z*1.5],.055,C.silver),'engine-mount');
  }else{
   const z=layout.bodyZ,y=prop?-.1:3.4,rz=prop?2.65:3.1,ry=prop?2.75:3.2,nose=prop?-22:-25,tail=prop?43.66:40.13;
-  const fuselage=loft('airframe.fuselage',[[nose,y-.5,z,.03,.03],[nose+1.1,y-.45,z,ry*.36,rz*.33],[nose+3.5,y-.12,z,ry*.84,rz*.78],[nose+6.5,y,z,ry,rz],[tail-12,y,z,ry,rz],[tail-7,y+.15,z,ry*.75,rz*.72],[tail-2,y+.55,z,.55,.42],[tail,y+.65,z,.035,.035]],skin,'fuselage');
+  const fuselage=loft('airframe.fuselage',[[nose,y-1.0,z,.03,.03],[nose+.44,y-.88,z,ry*.16,rz*.24],[nose+1.25,y-.64,z,ry*.42,rz*.42],[nose+2.65,y-.35,z,ry*.71,rz*.68],[nose+4.0,y-.10,z,ry*.87,rz*.86],[nose+6.3,y,z,ry,rz],[tail-12,y,z,ry,rz],[tail-7,y+.15,z,ry*.75,rz*.72],[tail-2,y+.55,z,.55,.42],[tail,y+.65,z,.035,.035]],skin,'fuselage');
   for(const side of [-1,1]){
-   skinWindow('airframe.cockpit',fuselage,[[nose+2.4,side*.62],[nose+5.3,side*.62],[nose+5.4,side*1.17],[nose+2.9,side*1.23]],'windscreen-'+side);
+   skinWindow('airframe.cockpit',fuselage,[[nose+2.50,side*.10],[nose+4.35,side*.19],[nose+4.82,side*.91],[nose+3.23,side*1.05]],'windscreen-'+side);
+   skinWindow('airframe.cockpit',fuselage,[[nose+4.52,side*.29],[nose+6.02,side*.43],[nose+6.12,side*1.17],[nose+5.0,side*1.11]],'side-windscreen-'+side);
    for(let i=0;i<(prop?20:24);i++){const x=nose+8.5+i*(prop?2.15:1.9);skinWindow('airframe.cockpit',fuselage,[[x-.28,side*1.12],[x+.28,side*1.12],[x+.28,side*1.48],[x-.28,side*1.48]],'cabin-window-'+side+'-'+i);}
    for(const x of [nose+7,tail-10.6])skinSeam('airframe.fuselage',fuselage,[[x,side*.68],[x,side*2.2],[x+1.05,side*2.2],[x+1.05,side*.68],[x,side*.68]],'cabin-door-'+side+'-'+x);
    const wy=prop?2.55:2.65,rootX=prop?1.1:-.6,semi=prop?28.42:28.3,sweep=prop?1.5:13.0,rootChord=prop?6.4:11.0,tipChord=prop?2.7:2.7;
@@ -134,6 +144,12 @@ export function buildAirframeGeometry(a,m){
   }
   const cowling=(ez)=>prop?[[-6.25,0,ez,1.5,1.5],[-5.75,0,ez,1.6,1.6],[-4.3,-.15,ez,1.95,1.9],[1.6,-.15,ez,1.95,1.9],[4.45,0,ez,1.18,1.18],[4.9,0,ez,1.08,1.08]]:[[-5.55,0,ez,2.16,2.16],[-4.8,0,ez,2.25,2.25],[-2.6,-.3,ez,2.6,2.55],[1.5,-.3,ez,2.6,2.55],[3.7,-.1,ez,2.2,2.15],[4.45,0,ez,1.94,1.94]];
   const installedCowl=loft('airframe.nacelle',cowling(0),skin,'installed-nacelle');installedCowl.userData.installationCover=true;
+  if(!prop)for(const side of [-1,1]){
+   const ez=z+side*19.35,shift=5.1;
+   loft('airframe.companion',cowling(ez).map(([x,...rest])=>[x+shift,...rest]),skin,'outer-engine-'+side);
+   const mouth=mesh('airframe.companion',new T.CircleGeometry(1.86,24),glass,[-5.51+shift,0,ez]);mouth.rotation.y=-Math.PI/2;mark(mouth,'outer-engine-intake-'+side);
+   foil('airframe.mounts',{root:[shift+1.1,1.78,ez],span:1.78,rootChord:4.3,tipChord:3.0,sweep:3.5,vertical:true,thickness:.085},trim,'outer-pylon-'+side);
+  }
   const ez=layout.oppositeEngineZ,r=prop?1.3:2.15;
   loft('airframe.companion',cowling(ez),skin,'context-engine-nacelle');
   const intake=mesh('airframe.companion',new T.CircleGeometry(r*.86,lowDetail?18:32),glass,[-5.51,0,ez]);intake.rotation.y=-Math.PI/2;mark(intake,'context-engine-intake');

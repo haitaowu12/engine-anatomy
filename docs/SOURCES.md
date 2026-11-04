@@ -27,13 +27,25 @@ The product uses original explanations, original procedural geometry and declare
 
 ## Whole-aircraft proportion references
 
-The original whole-aircraft contexts use three recognizable silhouettes:
+Choose **Whole aircraft**, then **Hand-drawn** or **Realistic**. The illustrated view retains the teaching drivetrain, mounting and component relationships. The realistic view shows the reference aircraft exterior.
 
-- **Bell 412:** compact cabin, raised engine deck, four-blade main rotor, conventional tail boom and skids. [Bell public overview and aircraft gallery](https://www.bellflight.com/products/bell-412).
-- **Dash 8-400:** slender regional fuselage, high straight wing, paired propeller nacelles and T-tail. The [WestJet aircraft specification](https://www.westjet.com/en-ca/aircraft/dehavilland-dash-8-400) lists length 32.8 m and span 28.4 m; the model keeps that length/span relationship at an illustrative scale.
-- **737-800:** rounded transport nose, swept low wing, paired underslung nacelles and conventional tail. [Boeing airport-planning reference](https://www.boeing.com/content/dam/boeing/v2/airports/acaps/737NG_REV_C.pdf) and [WestJet aircraft reference](https://www.westjet.com/en-ca/aircraft/boeing-737-800-next-generation). The model uses an approximately 39.5:34.3 length/span relationship without winglets.
+| Reference aircraft | Evidence used |
+| --- | --- |
+| Airbus H175 / EC175 B | [Airbus ground rescue booklet, p. 3](https://www.airbus.com/sites/g/files/jlcbta136/files/2025-01/master_ec175_ground_rescue_booklet.pdf) supplies rotor diameters and wheelbase. [Gyrostat’s side photo](https://commons.wikimedia.org/wiki/File:EC175_F-WWOH_2jul15_LFBO.jpg) and [Jack Wolbrink’s front-quarter photo](https://www.avia-dejavu.net/photo%20OO-NSD.htm) show the cockpit, cabin and cowling of serial 5006. The H175 has twin PT6C-67E engines. The turboshaft bench is the XT700 study. |
+| De Havilland Canada Dash 8-300 | [EASA.IM.A.191, pp. 22–23](https://www.easa.europa.eu/en/downloads/7257/en) gives the dimensions, PW123-family engines and 3.96 m propeller diameter. [De Havilland Canada’s photograph](https://dehavilland.com/wp-content/uploads/2023/04/dhc-dash-8-300-scaled.jpg) shows the high wing, T-tail and nacelles. The turboprop bench is the PT6A-100 study. |
+| Airbus A340-300 | [Airbus airport and maintenance planning, §§2-2 and 2-12](https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2025-12/AC_A340-200-300_20251201.pdf) supports the proportions and CFM56-5C nacelle. [Lufthansa’s fleet reference](https://www.lufthansagroup.com/en/company/fleet/lufthansa-and-regional-partners/airbus-a340-300.html) confirms the 63.69 m length, 60.30 m span and center landing gear. Engine assembly studies one engine. |
 
-These references inform the external shape. The original synthetic engines, four-blade propeller, four-blade tail rotor, simplified mounts, service routes and drivetrain remain teaching choices. The figures do not reproduce these aircraft types, their engine installations or their performance. No manufacturer image or CAD is bundled.
+Geometry is authored from these references. Surface contours and hardware details are approximate.
+
+## Photographic references for future modeling
+
+- [Smithsonian XT700-GE-700 turboshaft](https://airandspace.si.edu/collection-objects/general-electric-xt700-ge-700-turboshaft-engine/nasm_A19860224000): nine photographs of a 1974 experimental engine, including external plumbing and casing. Its five axial stages plus centrifugal stage differ from this atlas's generic axial core.
+- [PT6 cutaway at McGill](https://commons.wikimedia.org/wiki/File:PT6_cutaway,_McGill_University.jpg): Ut tensio's photograph of a PT6 cutaway, CC BY-SA 4.0. It illustrates a specific reverse-flow family, not the atlas's generic forward-flow model. The photograph does not identify the variant or resolve hidden parts.
+- [CFM56-5C cutaway display](https://commons.wikimedia.org/wiki/File:CFM56-5C_Mockup_Cutaway.jpg): Stahlkocher’s photograph shows a two-spool turbofan display, CC BY-SA 3.0. The photo supports external form and display construction, not hidden dimensions or the atlas’s exact stage geometry.
+- [Smithsonian RB211-22 cutaway](https://airandspace.si.edu/collection-objects/rolls-royce-rb211-22-turbofan-engine-cutaway/nasm_A19820072000): four photographs showing surface finish, casing and exposed construction. This is a three-shaft engine; the atlas models a two-spool arrangement.
+- [Smithsonian JT15D-1](https://airandspace.si.edu/collection-objects/pratt-whitney-canada-jt15d-1turbofan-engine-cutaway/nasm_A19780210000): the museum identifies a centrifugal high-pressure compressor and reverse-flow annular combustor. It is a useful configuration contrast, not a template for the atlas's axial two-spool model.
+
+These references support visual study, not a part-by-part reconstruction. Installation photographs, detailed geometry and variant-specific controls remain needed for a faithful replica.
 
 ## Publication boundary
 

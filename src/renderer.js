@@ -101,7 +101,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
  function forceArrow(id,start,end,color){const curve=[new T.Vector3(...start),new T.Vector3(...end)];const arrow=new T.ArrowHelper(curve[1].clone().sub(curve[0]).normalize(),curve[0],curve[0].distanceTo(curve[1]),color,.5,.25);arrow.traverse(o=>{o.userData.id=id;});part(id).add(arrow);forceArrows.push(arrow);return arrow;}
  function buildAirframe(){const k=manifest.kind;buildAirframeGeometry({T,C,mesh,cylinder,pipe,box,lowDetail:renderer.isSVGRenderer},manifest);
   if(k==='helicopter'){
-   const {mastX:mx,tailX,rotorRadius}=AIRFRAME_LAYOUT.helicopter;
+   const {mastX:mx,tailX,tailRotorY,rotorRadius}=AIRFRAME_LAYOUT.helicopter;
    cylinder('reduction',[5.62,0,0],[6.3,0,0],.1,C.amber);cylinder('reduction',[6.3,0,0],[6.3,-2.5,0],.1,C.amber);gear('reduction',[6.3,-2.5,0],.42,'y','p',GEAR.helicopterMain);
    cylinder('mast',[6.3,-2.5,0],[mx,-2.5,0],.14,C.amber);gear('mast',[mx,-2.5,0],.65,'y','p',GEAR.helicopterMain);cylinder('mast',[mx,-2.5,0],[mx,6.4,0],.16,C.amber);
    gear('tail.stepup',[.8,-2.5,0],.64,'x','p',GEAR.helicopterMain,48);gear('tail.stepup',[.8,-2.5,-.8],.16,'x','p',-GEAR.helicopterTail,12);
@@ -112,7 +112,9 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
    for(let i=0;i<tailRoute.length-1;i++){const from=tailRoute[i],to=tailRoute[i+1],radius=i===3?.1:.095,shaft=cylinder('tail.drive',from,to,radius,C.amber);shaft.userData.tailDriveSegment={from,to,radius};}
    for(const at of tailRoute.slice(1,3)){const joint=ellipsoid('tail.drive',at,[.14,.14,.14],C.silver);joint.userData.tailDriveSegment={joint:true,at};}
    gear('tail.drive',[tailX,-2.5,0],.3,'x','p',-GEAR.helicopterTail);
-   aerodynamicRotor('rotor',[mx,6.4,0],rotorRadius,4,'y',GEAR.helicopterMain);aerodynamicRotor('tail.rotor',[tailX,-2.5,1.5],2.4,4,'z',-GEAR.helicopterTail);
+   cylinder('tail.gearbox',[tailX,-2.5,0],[tailX,tailRotorY,0],.10,C.amber);
+   cylinder('tail.gearbox',[tailX,tailRotorY,0],[tailX,tailRotorY,.75],.12,C.silver);
+   aerodynamicRotor('rotor',[mx,6.4,0],rotorRadius,5,'y',GEAR.helicopterMain);aerodynamicRotor('tail.rotor',[tailX,tailRotorY,.75],2.4,3,'z',-GEAR.helicopterTail);
    forceArrow('rotor',[mx,6.5,0],[mx,10,0],C.green);
   }else{
    const prop=k==='turboprop',body=prop?[8,.6,-8.8]:[8,3.4,-10];
@@ -188,7 +190,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
  }
  function clear(){for(const g of root.children){g.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});}root.clear();groups=new Map();meshes=[];rotations=[];pitchBlades=[];lines=[];flowParticles=[];markers=[];sectionCovers=[];closedCovers=[];inspectionParts=[];detailInspection=[];pitchLinks=[];serviceFlows=[];bladeRoots=[];mechanismUpdates=[];forceArrows=[];}
  function load(next){clear();manifest=next;selected=next.initial;shaftTrace=null;eventNode=null;isolate=false;inspection=0;recipe='engine';lastVectorFrame='';buildAirframe();buildEngine();buildEdges();buildFlows();updateInspection();updateStyles();}
- function resize(){const w=host.clientWidth,h=host.clientHeight,vertical=Math.max(span,span*1.55/(w/h));camera.left=-vertical*w/h/2;camera.right=vertical*w/h/2;camera.top=vertical/2;camera.bottom=-vertical/2;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+ function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;lastVectorFrame='';const vertical=Math.max(span,span*1.55/(w/h));camera.left=-vertical*w/h/2;camera.right=vertical*w/h/2;camera.top=vertical/2;camera.bottom=-vertical/2;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
  function cameraState(){return {position:camera.position.toArray(),target:controls.target.toArray(),zoom:camera.zoom,span};}
  function restore(v){camera.position.fromArray(v.position);controls.target.fromArray(v.target);camera.zoom=v.zoom;span=v.span;resize();controls.update();}
  function setPreset(p){preset=p;savedFocus=null;host.dataset.focused='false';camera.zoom=1;

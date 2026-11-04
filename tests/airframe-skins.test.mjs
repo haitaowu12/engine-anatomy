@@ -29,7 +29,7 @@ function build(kind,lowDetail){
  return {scene,meshes,camera,dispose(){for(const object of meshes){object.geometry.dispose();object.material.dispose();}}};
 }
 
-const loftFeatures=new Set(['fuselage','tail-boom','transmission-fairing','installed-nacelle','context-engine-nacelle','context-prop-spinner']);
+const loftFeatures=new Set(['fuselage','tail-boom','transmission-fairing','installed-nacelle','context-engine-nacelle','context-prop-spinner','wheel-fairing-1','wheel-fairing--1']);
 for(const kind of ['helicopter','turboprop','turbofan'])test(`${kind}: curved glazing has matching physical apertures in the fuselage`,()=>{
  const {meshes,dispose}=build(kind,true);
  try{

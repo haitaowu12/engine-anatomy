@@ -50,3 +50,13 @@
 .study-switch{display:flex;align-items:center;gap:4px;flex-shrink:0}.study-switch a{font-size:12px;text-decoration:none;padding:10px 12px;border:1px solid transparent;border-radius:3px;white-space:nowrap}.study-switch a[aria-current="page"]{color:var(--accent);border-color:var(--line)}.study-switch a:hover,.study-switch a:focus-visible{background:#343238;color:#f1e8d6}.scene-shell>.circuit-tools{border-top:0;border-bottom:1px solid var(--line)}
 @media(max-width:1100px){header .qualification{display:none}}
 @media(max-width:560px){header{gap:10px;flex-wrap:wrap;padding:12px 0}.study-switch{order:3;width:100%;border-top:1px solid var(--line);padding-top:6px}.study-switch a{flex:1;text-align:center}}
+
+.aircraft-style{display:flex;gap:4px;align-items:center}
+.aircraft-style[hidden],#realistic-aircraft[hidden]{display:none}
+.aircraft-style button{min-height:36px;padding:6px 11px;white-space:nowrap}
+#realistic-aircraft{position:absolute;inset:76px 0 0;width:100%;height:calc(100% - 76px);border:0;background:#f4f1e8}
+.realistic-mode .scene-event,.realistic-mode .scene-pin{display:none}
+@media(max-width:550px){.aircraft-style button{min-height:44px}}
+
+.realistic-mode .force-note{bottom:9px;right:12px;padding:4px 7px;background:#f4f1e8e8;border-radius:3px}
+.scene-shell:has(.realistic-mode) .scene-footer label{display:none}
