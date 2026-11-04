@@ -101,21 +101,21 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
  function forceArrow(id,start,end,color){const curve=[new T.Vector3(...start),new T.Vector3(...end)];const arrow=new T.ArrowHelper(curve[1].clone().sub(curve[0]).normalize(),curve[0],curve[0].distanceTo(curve[1]),color,.5,.25);arrow.traverse(o=>{o.userData.id=id;});part(id).add(arrow);forceArrows.push(arrow);return arrow;}
  function buildAirframe(){const k=manifest.kind;buildAirframeGeometry({T,C,mesh,cylinder,pipe,box,lowDetail:renderer.isSVGRenderer},manifest);
   if(k==='helicopter'){
-   const {mastX:mx,tailX,tailRotorY,rotorRadius}=AIRFRAME_LAYOUT.helicopter;
+   const {mastX:mx,tailX,tailDriveX,tailRotorY,tailRotorRadius,rotorY,rotorRadius}=AIRFRAME_LAYOUT.helicopter;
    cylinder('reduction',[5.62,0,0],[6.3,0,0],.1,C.amber);cylinder('reduction',[6.3,0,0],[6.3,-2.5,0],.1,C.amber);gear('reduction',[6.3,-2.5,0],.42,'y','p',GEAR.helicopterMain);
-   cylinder('mast',[6.3,-2.5,0],[mx,-2.5,0],.14,C.amber);gear('mast',[mx,-2.5,0],.65,'y','p',GEAR.helicopterMain);cylinder('mast',[mx,-2.5,0],[mx,6.4,0],.16,C.amber);
+   cylinder('mast',[6.3,-2.5,0],[mx,-2.5,0],.14,C.amber);gear('mast',[mx,-2.5,0],.65,'y','p',GEAR.helicopterMain);cylinder('mast',[mx,-2.5,0],[mx,rotorY,0],.16,C.amber);
    gear('tail.stepup',[.8,-2.5,0],.64,'x','p',GEAR.helicopterMain,48);gear('tail.stepup',[.8,-2.5,-.8],.16,'x','p',-GEAR.helicopterTail,12);
    // The input needs its offset to clear the slower main-drive shaft. A short
    // two-joint offset section then centers the long shaft in the tapering boom.
    // Joint geometry is schematic; the plant retains an ideal constant ratio.
-   const tailRoute=[[.8,-2.5,-.8],[6.5,-2.5,-.8],[7.5,-2.5,0],[tailX,-2.5,0],[tailX,-2.5,1.5]];
+   const tailRoute=[[.8,-2.5,-.8],[6.5,-2.5,-.8],[7.5,-2.5,0],[tailDriveX,-2.5,0],[tailDriveX,-2.5,1.5]];
    for(let i=0;i<tailRoute.length-1;i++){const from=tailRoute[i],to=tailRoute[i+1],radius=i===3?.1:.095,shaft=cylinder('tail.drive',from,to,radius,C.amber);shaft.userData.tailDriveSegment={from,to,radius};}
    for(const at of tailRoute.slice(1,3)){const joint=ellipsoid('tail.drive',at,[.14,.14,.14],C.silver);joint.userData.tailDriveSegment={joint:true,at};}
-   gear('tail.drive',[tailX,-2.5,0],.3,'x','p',-GEAR.helicopterTail);
-   cylinder('tail.gearbox',[tailX,-2.5,0],[tailX,tailRotorY,0],.10,C.amber);
+   gear('tail.drive',[tailDriveX,-2.5,0],.3,'x','p',-GEAR.helicopterTail);
+   cylinder('tail.gearbox',[tailDriveX,-2.5,0],[tailX,tailRotorY,0],.10,C.amber);
    cylinder('tail.gearbox',[tailX,tailRotorY,0],[tailX,tailRotorY,.75],.12,C.silver);
-   aerodynamicRotor('rotor',[mx,6.4,0],rotorRadius,5,'y',GEAR.helicopterMain);aerodynamicRotor('tail.rotor',[tailX,tailRotorY,.75],2.4,3,'z',-GEAR.helicopterTail);
-   forceArrow('rotor',[mx,6.5,0],[mx,10,0],C.green);
+   aerodynamicRotor('rotor',[mx,rotorY,0],rotorRadius,5,'y',GEAR.helicopterMain);aerodynamicRotor('tail.rotor',[tailX,tailRotorY,.75],tailRotorRadius,3,'z',-GEAR.helicopterTail);
+   forceArrow('rotor',[mx,rotorY+.1,0],[mx,rotorY+3.6,0],C.green);
   }else{
    const prop=k==='turboprop',body=prop?[8,.6,-8.8]:[8,3.4,-10];
    if(prop){cylinder('reduction',[-7.2,0,0],[-6.12,0,0],.065,C.amber);
@@ -198,7 +198,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
    root.updateMatrixWorld(true);const box=new T.Box3();for(const o of meshes)if(o.userData.airframeContext||['rotor','tail.rotor','propeller'].includes(o.userData.id))box.expandByObject(o);
    const center=box.getCenter(new T.Vector3());controls.target.copy(center);camera.position.copy(center).add(new T.Vector3(...layout.camera));camera.lookAt(center);camera.updateMatrixWorld(true);
    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z]){const q=new T.Vector3(x,y,z).applyMatrix4(camera.matrixWorldInverse);minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x);minY=Math.min(minY,q.y);maxY=Math.max(maxY,q.y);}
-   const aspect=host.clientWidth/host.clientHeight;span=Math.max((maxY-minY)*1.18,(maxX-minX)/aspect*1.16);if(aspect<1.55)span/=1.55/aspect;
+   const aspect=Math.max(1.55,host.clientWidth/host.clientHeight||1.55);span=Math.max((maxY-minY)*1.18,(maxX-minX)/aspect*1.16);
   }
   else if(p==='section'){span=manifest.kind==='turboprop'?8.5:7.4;controls.target.set(manifest.kind==='turboprop'?-.9:-.2,0,0);camera.position.set(manifest.kind==='turboprop'?2:.6,2.6,16);}
   else {span=manifest.kind==='helicopter'?7.8:10;controls.target.set(-.3,.1,0);camera.position.copy(controls.target).add(new T.Vector3(-6,5.3,16));}
@@ -220,6 +220,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
   // long internal triangles overpaint the exterior in the SVG painter backend.
   // Lips, intake fan, nozzle cone and outlet rims remain real visible geometry.
   const closedInstallation=preset==='aircraft'&&!cutaway&&!inspection&&!isolate&&overlay!=='shafts';
+  const h175Exterior=closedInstallation&&manifest.kind==='helicopter'&&overlay==='anatomy';
   const isolationMembers=overlay==='shafts'?members:node?.id.endsWith('.shaft')?(manifest.shafts.find(s=>s.id===node.shaft)?.members||[]):[];
   const isProp=manifest.kind==='turboprop';const branchIds=['load.speed','prop.governor','pitch.actuator','pitch.feedback'].includes(selected)&&isProp?['load.speed','prop.governor','pitch.actuator','propeller']:(['speed.g','torque','demand','controller','fmu','fuel.nozzles'].includes(selected)||selected==='speed.p'&&!isProp)?['controller','fmu','fuel.nozzles','combustor.liner']:[];const branchEdges=new Set(branchIds.slice(0,-1).map((id,i)=>id+'>'+branchIds[i+1]));
   const neighborEdges=manifest.edges.filter(e=>(e.from===selected||e.to===selected||e.from===eventNode||e.to===eventNode||branchEdges.has(e.id))&&(selected!=='controller'||e.simulated)),neighbors=new Set(neighborEdges.flatMap(e=>[e.from,e.to]));
@@ -235,6 +236,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
    if(m.userData.airframeContext){if(preset!=='aircraft'&&!hit)m.visible=false;else opacity=1;}
    if(m.userData.installationCover){m.visible=m.visible&&((preset==='aircraft'&&!cutaway&&!inspection)||hit);if(hit&&cutaway)opacity=.18;}
    if(closedInstallation&&m.userData.enclosedByCowling)m.visible=false;
+   if(h175Exterior&&!m.userData.airframeContext&&!['rotor','tail.rotor'].includes(id))m.visible=false;
    if(preset!=='aircraft'&&['rotor','tail.drive','tail.rotor','pitch.control','swashplate','mast','tail.gearbox','tail.stepup'].includes(id)&&!hit&&overlay!=='shafts'&&!(selected==='load.speed'&&manifest.kind==='helicopter'&&['mast','rotor'].includes(id)))m.visible=false;
    if(preset!=='aircraft'&&manifest.kind==='helicopter'&&id==='load.speed'&&!hit)m.visible=false;
    if(overlay==='shafts'&&!member&&!id.endsWith('.shaft')&&n.group!=='drive')opacity=Math.min(opacity,.14);
@@ -253,7 +255,7 @@ export function createAtlasRenderer(host,manifest,onSelect,rendering={}){
   }
   for(const {full,section}of sectionCovers){full.visible=overlay!=='shafts';section.visible=overlay==='shafts';}
   for(const p of inspectionParts)p.guide.visible=inspection>0&&!isolate&&p.group.position.lengthSq()>0&&groups.get(p.id).visible&&p.group.children.some(m=>m.isMesh&&m.visible);
-  for(const m of closedCovers)m.visible=!cutaway&&!inspection&&overlay!=='shafts'&&(!isolate||selectedIds.has(m.userData.id))&&!(closedInstallation&&m.userData.enclosedByCowling);
+  for(const m of closedCovers)m.visible=!h175Exterior&&!cutaway&&!inspection&&overlay!=='shafts'&&(!isolate||selectedIds.has(m.userData.id))&&!(closedInstallation&&m.userData.enclosedByCowling);
   for(const arrow of forceArrows)arrow.visible=preset==='aircraft'&&!isolate;
   for(const f of flowParticles)f.particles.visible=!isolate&&!inspection&&preset!=='aircraft'&&(overlay==='gas'||overlay==='anatomy');
   info.hidden=preset==='aircraft'||isolate||!!eventNode;info.textContent=(node?.name||'Selected component')+' ↗';

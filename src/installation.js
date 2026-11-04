@@ -43,7 +43,9 @@ export function applyInstallation(m){
  }
  if(heli){
   for(const id of ['mast','rotor','swashplate','load.speed']){const n=m.nodes.find(n=>n.id===id);if(n)n.anchor[0]=AIRFRAME_LAYOUT.helicopter.mastX;}
-  m.nodes.find(n=>n.id==='pitch.control').anchor=[AIRFRAME_LAYOUT.helicopter.mastX,5.2,0];
+  const {mastX,rotorY}=AIRFRAME_LAYOUT.helicopter;
+  m.nodes.find(n=>n.id==='rotor').anchor=[mastX,rotorY,0];
+  for(const id of ['pitch.control','swashplate'])m.nodes.find(n=>n.id===id).anchor=[mastX,rotorY-1.2,0];
   for(const id of ['tail.rotor','tail.gearbox']){
    const n=m.nodes.find(n=>n.id===id);
    if(n)n.anchor=[AIRFRAME_LAYOUT.helicopter.tailX,AIRFRAME_LAYOUT.helicopter.tailRotorY,id==='tail.rotor'?.75:0];

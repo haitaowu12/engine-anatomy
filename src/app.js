@@ -136,7 +136,11 @@ document.addEventListener('click',e=>{if(e.target.closest('#frame-route')){scene
 function changeKind(value){if(value===kind)return;const concept=manifest.nodes.find(n=>n.id===selected)?.concept,previousOverlay=overlay,previousPreset=preset;kind=value;const q=new URLSearchParams(location.search);q.set('engine',kind);historyReplace(q);buildArchitecture();const equivalent=manifest.nodes.find(n=>n.concept===concept);if(equivalent)select(equivalent.id);setOverlay(previousOverlay);setPreset(previousPreset);if(activity==='walkthrough')showLesson(true);$('workbench').scrollIntoView({block:'start',behavior:'instant'});}
 for(const b of document.querySelectorAll('[data-kind]'))b.addEventListener('click',()=>navigate(()=>changeKind(b.dataset.kind)));
 for(const b of document.querySelectorAll('button[data-overlay]'))b.addEventListener('click',()=>navigate(()=>setOverlay(b.dataset.overlay)));for(const b of document.querySelectorAll('[data-preset]'))b.addEventListener('click',()=>navigate(()=>setPreset(b.dataset.preset)));
-$('focus-part').addEventListener('click',()=>{scene?.focus();revealModel();});$('return-view').addEventListener('click',()=>{scene?.returnView();revealModel();});function aircraftCamera(action,fallback){
+$('focus-part').addEventListener('click',()=>{
+ const node=manifest.nodes.find(n=>n.id===selected);
+ if(kind==='helicopter'&&preset==='aircraft'&&overlay==='anatomy'&&!inspection&&!presetCutaways.aircraft&&node?.group!=='airframe')$('cutaway').click();
+ scene?.focus();revealModel();
+});$('return-view').addEventListener('click',()=>{scene?.returnView();revealModel();});function aircraftCamera(action,fallback){
  const frame=$('realistic-aircraft');
  if(frame.hidden)fallback();
  else frame.contentWindow.postMessage({type:'engine-anatomy-aircraft-camera',action},location.origin);

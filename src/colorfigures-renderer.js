@@ -129,7 +129,8 @@ export class ColorfiguresRenderer {
       const minX=Math.min(...pts.map(p=>p[0])),maxX=Math.max(...pts.map(p=>p[0])),minY=Math.min(...pts.map(p=>p[1])),maxY=Math.max(...pts.map(p=>p[1]));
       if(maxX<0||minX>this.width||maxY<0||minY>this.height)return;
       const smallLimit=this.quality==='detail'?0:this.quality==='economy'?65:32;
-      if(Math.max(maxX-minX,maxY-minY)<smallLimit&&!Array.isArray(object.material)){
+      // A solid hull would fill openings in small frames and rings.
+      if(Math.max(maxX-minX,maxY-minY)<smallLimit&&!object.userData.keepAperture&&!Array.isArray(object.material)){
         const mat=object.material,outline=hull(pts.map(p=>[p[0],p[1]])),path=sp(outline),opacity=mat.opacity??1;
         parts.push({depth:pts.reduce((sum,p)=>sum+p[2],0)/pts.length,order:object.renderOrder,
           points:pts,loops:[outline],bounds:boundsOf(pts),path,shade:materialColor(mat).m,opacity,edges:path,width:.55});faceCount++;return;

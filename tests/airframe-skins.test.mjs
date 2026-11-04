@@ -67,14 +67,16 @@ for(const lowDetail of [true,false])test(`helicopter ${lowDetail?'SVG':'full'} g
  try{
   const cover=meshes.find(o=>o.userData.installationCover);assert.ok(cover);
   for(const side of [-1,1]){
-   for(const x of [3.43,3.59,3.75,3.91,4.07])for(const y of [.1,.26,.42,.58,.74,.9]){
-    const ray=new T.Raycaster(new T.Vector3(x,y,side*4),new T.Vector3(0,0,-side),0,3);
+   const {x:outletX,y:outletY}=meshes.find(o=>o.userData.airframeFeature==='exhaust-mouth-'+side).position;
+   for(const dx of [-.24,0,.24])for(const dy of [-.18,0,.18]){
+    const x=outletX+dx,y=outletY+dy;
+    const ray=new T.Raycaster(new T.Vector3(x,y,side*5),new T.Vector3(0,0,-side),0,5);
     assert.equal(ray.intersectObject(cover).length,0,`the outlet aperture must be open at (${x}, ${y}), side ${side}`);
    }
    // Adjacent rays hit the shell, so passing the aperture cannot be explained
    // by a missing cover, reversed normals or an overlarge removed side wall.
-   for(const x of [2.5,5]){
-    const ray=new T.Raycaster(new T.Vector3(x,.45,side*4),new T.Vector3(0,0,-side),0,3);
+   for(const dx of [-1.25,1.25]){
+    const ray=new T.Raycaster(new T.Vector3(outletX+dx,outletY,side*5),new T.Vector3(0,0,-side),0,5);
     assert.ok(ray.intersectObject(cover).length>0,'intact side skin remains beside each port');
    }
   }
