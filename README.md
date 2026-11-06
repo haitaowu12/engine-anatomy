@@ -2,7 +2,7 @@
 
 An original interactive atlas of **three engine–airframe pairs**, with selectable construction, coordinated energy/control views and distinct synthetic running plants, plus a separate **LEGO Technic H175 mechanism study**.
 
-- [GitHub Pages](https://haitaowu12.github.io/engine-anatomy/)
+- [Open Engine Anatomy](https://engine-anatomy.web.app/)
 - [GPT Site](https://engine-anatomy.techiesea.chatgpt.site)
 
 ## Why I built this
@@ -37,7 +37,7 @@ Choose **3D studies** for the material-rendered XT700, PT6A-100 and CFM56-5C stu
 
 ## Explore version 5
 
-Choose **Engines** for the three running-engine studies or **LEGO H175** for the separate [set 42145 mechanism study](https://haitaowu12.github.io/engine-anatomy/h175.html). The H175 page uses original construction-toy geometry and the functions documented in LEGO's product page and building instructions. Its battery motor, mechanical selectors, rotor pitch, retractable gear and winch are separate from the gas-turbine plants. It is not a brick-for-brick inventory or a manufacturer gearbox reconstruction. See [H175-STUDY.md](docs/H175-STUDY.md) for source-to-feature mappings and declared simplifications.
+Choose **Engines** for the three running-engine studies or **LEGO H175** for the separate [set 42145 mechanism study](https://engine-anatomy.web.app/h175.html). The H175 page uses original construction-toy geometry and the functions documented in LEGO's product page and building instructions. Its battery motor, mechanical selectors, rotor pitch, retractable gear and winch are separate from the gas-turbine plants. It is not a brick-for-brick inventory or a manufacturer gearbox reconstruction. See [H175-STUDY.md](docs/H175-STUDY.md) for source-to-feature mappings and declared simplifications.
 
 The version 5 geometry and interaction review compares the previous release with the changed model; [REVISION-5.md](docs/REVISION-5.md) records the actual browser evidence. Circuit selection is now above its diagram, and both HTML entry pages receive the same source digest and dependency cache keys.
 
@@ -97,3 +97,13 @@ The values and dimensions are **original synthetic educational assumptions**. Th
 MIT for original code/assets. Three.js's MIT notice, Colorfigures' complete MIT notice and the font licenses are bundled. Reference documents remain with their publishers; their artwork and manual passages are not copied into this product.
 
 Built by [Tony Wu](https://haitaowu12.github.io/tony-wu-home/) · [More projects](https://haitaowu12.github.io/tony-wu-home/#work).
+
+## Firebase Hosting
+
+[Open the published project](https://engine-anatomy.web.app/). Firebase Hosting is the primary destination for future releases. Run `npm test`, `npm run build` and `npm run check:release`; publish `dist/` with its release identity intact.
+
+```sh
+firebase deploy --only hosting --project tony-wu-projects
+```
+
+The repository configuration selects the site and public output directory. Hosting uses the no-cost Spark plan; source pushes do not deploy automatically. Existing hosts remain available.
