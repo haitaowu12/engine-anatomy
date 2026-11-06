@@ -6,3 +6,5 @@ output/
 .env*
 
 /node_modules
+.firebase/
+gha-creds-*.json
