@@ -14,7 +14,7 @@ Use **Inspect module** to isolate any modeled module. Use **Cut away** or **X-ra
 
 **Installed context** assembles the engine in its local bay or wing section. **Whole aircraft** shows the H175, Dash 8-300, or A340-300 exterior. The H175 has twin PT6C-67E engines and the Dash 8-300 has PW123-family engines. The related engine benches show the XT700 and PT6A-100 respectively. Select an engine inspection control to return to the detailed view. The wide view uses a separate display scale. Installation details and clearances remain illustrative.
 
-The three studies reuse Engine Anatomy’s synthetic running-envelope plant in `src/plants.js`. Change demand or the fuel ceiling, then select **Run** or set **Trial time**. The 24-second trial starts from the same settled operating point after each control change. Shaft and propeller motion is slowed for viewing. Readouts are educational model outputs and do not represent manufacturer ratings, certified limits, control schedules or nacelle performance.
+The three studies reuse Engine Anatomy’s synthetic running-envelope plant in `src/plants.js`. Change demand or the fuel ceiling, then select **Run** or set **Trial time**. The 24-second trial starts from the same settled operating point after each control change. Shaft and propeller motion is slowed for viewing. Readouts describe the generic teaching model. The PT6A-100 hardware shown here uses hydromechanical fuel control, while the trial demonstrates electronic torque and propeller-speed loops. The CFM56-5C illustration has a mixer and common exhaust; the trial estimates core and bypass thrust with separate ideal nozzles. These distinctions keep the hardware views and numerical model explicit.
 
 ### Additional sources
 

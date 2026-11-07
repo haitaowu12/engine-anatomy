@@ -2,7 +2,7 @@ import {inspectionAmount,inspectionLabel} from './inspection.js';
 // Shared state derivation prevents displayed lesson/recipe copy from lagging
 // behind architecture changes or the component that a walkthrough locates.
 export function resolveLesson(paths,path,step=0){
- const lesson=paths.find(p=>p.id===path)||paths.find(p=>p.id==='spools')||paths[0];
+ const lesson=paths.find(p=>p.id===path)||paths.find(p=>p.id==='gas-path')||paths.find(p=>p.id==='spools')||paths[0];
  const index=Math.max(0,Math.min(lesson.steps.length-1,Number.isFinite(step)?Math.trunc(step):0));
  return {lesson,path:lesson.id,step:index,selected:lesson.steps[index][0]};
 }

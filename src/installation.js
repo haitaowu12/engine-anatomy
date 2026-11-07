@@ -7,12 +7,12 @@ const INTERFACES={
  'fuel.boost':['Aircraft fuel feed','Aircraft-side boost/feed pump in this example.','fuel'],
  'electric.battery':['Aircraft electrical source','Battery or ground supply is outside the installed engine assembly.','start'],
  'electric.bus':['Aircraft electrical distribution','Aircraft bus supplies selected engine services and controls.','start'],
- 'start.command':['Command information','An operator/control command enables starting energy; it is not that energy itself.','start'],
- 'starter.supply':['Starting-energy interface','Aircraft-side contactor or APU/ground air supply in the chosen example.','start'],
+ 'start.command':['Command information','A starting request operates the contactor or valve that admits starting energy.','start'],
+ 'starter.supply':['Starting-energy interface','An aircraft contactor or compressed-air supply connects starting energy to the engine.','start'],
  'demand':['Pilot / aircraft command','Prescribed demand enters the selected engine or propeller control loop.','control'],
- 'airdata':['Aircraft information','Air-data information is an aircraft interface, not a standalone engine accessory.','control'],
- 'cockpit':['Aircraft indication','Indications go to the aircraft display/crew. Display installation is not modeled.','control'],
- 'channels':['Optional control architecture','Channel separation and redundancy are explanatory alternatives, not extra boxes asserted on every engine.','control']
+ 'airdata':['Aircraft information','Aircraft instruments supply information about the surrounding air.','control'],
+ 'cockpit':['Aircraft indication','Engine measurements and status are presented to the crew on aircraft displays.','control'],
+ 'channels':['Control channels','Control channels, their electrical supplies and fault detection determine how the engine handles control faults.','control']
 };
 export function applyInstallation(m){
  const fan=m.kind==='turbofan',heli=m.kind==='helicopter';
@@ -32,7 +32,7 @@ export function applyInstallation(m){
   const boundary=INTERFACES[n.id];
   n.representation=boundary?'interface':m.nodes.some(p=>p.parentNodeId===n.id)&&!['compressor.casing','combustor.casing','combustor.liner','turbine.casing','fuel.nozzles','accessory','electrical','pitch.control','propeller','airframe','reduction'].includes(n.id)?'assembly':'physical';
   n.location=boundary?boundary[0]:n.group==='airframe'?'Aircraft / driven load':'Engine assembly';
-  n.locationNote=boundary?boundary[1]:n.group==='airframe'?'Original generic installation geometry; only the highlighted engine is simulated.':'Representative position on or within the engine. Dimensions, exact brackets and service routing vary by installation.';
+  n.locationNote=boundary?boundary[1]:n.group==='airframe'?'The highlighted engine is the one used by the numerical experiment.':'Shown at an example position on or within the engine; mounting and routing depend on the installation.';
   n.preferredCircuit=boundary?.[2];
   if(n.id==='load.speed'){
    n.location='Aircraft / driven load';n.locationNote=heli?'Mounted beside the main-rotor mast after the main reduction; shown with the driven rotor context.':'Mounted at the propeller drive after the reduction; distinct from the engine power-shaft pickup.';n.preferredPreset='aircraft';
@@ -50,21 +50,21 @@ export function applyInstallation(m){
    const n=m.nodes.find(n=>n.id===id);
    if(n)n.anchor=[AIRFRAME_LAYOUT.helicopter.tailX,AIRFRAME_LAYOUT.helicopter.tailRotorY,id==='tail.rotor'?.75:0];
   }
-  const tailDrive=m.nodes.find(n=>n.id==='tail.drive');tailDrive.anchor=[14,-2.5,0];tailDrive.explanation='The faster tail drive starts beside the slower main-drive shaft, then a short two-joint offset section centers the long shaft inside the tapering tail boom. The tail gearbox turns drive to the anti-torque rotor. Couplings are schematic and the plant uses the declared ideal constant gear ratio; joint-angle ripple, shaft flex and torsional vibration are not solved.';
-  m.nodes.find(n=>n.id==='airframe').anchor=[-3,-3.5,0];const exhaust=m.nodes.find(n=>n.id==='exhaust');exhaust.name='Side exhaust ducts & collector';exhaust.motion='Stationary ducts; flow markers are explanatory.';exhaust.anchor=[3.75,.65,3.15];exhaust.explanation='Residual gas leaves through representative lateral outlets ahead of the aft reduction. The turned discharge avoids sending exhaust into the gearbox or tail drive. Duct shapes and flow division are original explanatory choices, not a specific engine installation; residual exhaust thrust and branch flow are not calculated.';
+  const tailDrive=m.nodes.find(n=>n.id==='tail.drive');tailDrive.anchor=[14,-2.5,0];tailDrive.explanation='The tail-drive branch runs faster than the main-rotor mast. Couplings carry it into the tail boom, and the tail gearbox turns the drive toward the anti-torque rotor. Follow this continuous route from the main transmission to the tail.';
+  m.nodes.find(n=>n.id==='airframe').anchor=[-3,-3.5,0];const exhaust=m.nodes.find(n=>n.id==='exhaust');exhaust.name='Side exhaust ducts & collector';exhaust.motion='Stationary ducts; flow markers are explanatory.';exhaust.anchor=[3.75,.65,3.15];exhaust.explanation='Gas leaving the power turbine collects in ducts that turn it toward the side outlets. This example keeps the hot discharge clear of the aft gearbox and tail drive. The experiment reports shaft power; the outlets show where the remaining gas leaves.';
  }else{
   const prop=m.kind==='turboprop',airframe=m.nodes.find(n=>n.id==='airframe');airframe.anchor=[8,prop?.6:3.4,AIRFRAME_LAYOUT[m.kind].bodyZ];
-  airframe.explanation='A generic twin-engine wing-mounted aircraft provides installation context. The near engine is the one selectable, numerically simulated engine; the far pod is an exterior context model. Propulsion supplies thrust while the wing supplies lift. No second-engine, flight-control or aircraft-motion plant is implied.';
+  airframe.explanation='This example places two engines on the wings. The near engine is the one you can inspect and operate. Its thrust is carried through the mounts into the airframe, while airflow around the wing produces lift.';
   m.nodes.find(n=>n.id==='wing').anchor=[6,prop?2.05:2.65,AIRFRAME_LAYOUT[m.kind].bodyZ];
  }
- const base=m.nodes.find(n=>n.id==='airframe'),add=(id,name,explanation,anchor,source=heli?'helicopter':'airframe')=>m.nodes.push({...base,id,name,parentNodeId:'airframe',anchor,explanation,source,concept:id,instance:m.kind+':'+id,representation:'physical',recipe:null,fidelity:'Original generic airframe geometry; explanatory',motion:'Stationary installation context. Aircraft flight is not simulated.'});
- add('airframe.fuselage',heli?'Cabin & tail boom':'Fuselage','The fuselage carries occupants and joins the structural installation. A helicopter tail boom also supports the tail assembly. Shape and proportions here are original teaching geometry.',base.anchor,heli?'helicopter':'airframe');
- add('airframe.cockpit','Cockpit & cabin glazing','Windows identify the cabin and pilot viewpoint. They are surface context, not a cockpit instrument or visibility simulation.',heli?[-10,-2.5,0]:[-7,5,AIRFRAME_LAYOUT[m.kind].bodyZ]);
- add('airframe.tail','Tail surfaces',heli?'A representative fin and horizontal stabilizer provide tail context. Tail-rotor anti-torque is a separate mechanism.':'Horizontal and vertical stabilizers are distinct from the main wing. Elevator/rudder and flight dynamics are not simulated.',heli?[18,-.5,0]:[26,7,AIRFRAME_LAYOUT[m.kind].bodyZ]);
- add('airframe.landing',heli?'Landing skids':'Retracted gear doors','Landing supports and their attachment identify the airframe. Gear extension, suspension and ground dynamics are outside this engine study.',heli?[-3,-6,0]:[6,1,AIRFRAME_LAYOUT[m.kind].bodyZ]);
- add('airframe.mounts',heli?'Engine deck & mounts':'Engine pylons & mounts','Structural mounts carry engine loads into the airframe. They do not transmit a rotating shaft connection into the wing. Exact load paths and mount design depend on the installation.',heli?[.5,-1.7,0]:[1,2.7,0]);
- add('airframe.nacelle','Studied engine nacelle / cowling','The closed aircraft cowling encloses the engine and its installed accessories. '+(heli?'Separate lateral exhaust openings sit ahead of the reduction. ':'')+'Whole-aircraft view can open it with Cutaway; Engine assembly studies the hardware inside. This original envelope is not a manufacturer nacelle or an engine pressure casing.',[0,0,0]);
- if(!heli)add('airframe.companion','Far engine · exterior context only','These closed pods show the other engines in the illustrated airframe. Their internals, output, condition and controls are not separately simulated. The near engine remains the single engine under study.',[0,0,AIRFRAME_LAYOUT[m.kind].oppositeEngineZ]);
+ const base=m.nodes.find(n=>n.id==='airframe'),add=(id,name,explanation,anchor,source=heli?'helicopter':'airframe')=>m.nodes.push({...base,id,name,parentNodeId:'airframe',anchor,explanation,source,concept:id,instance:m.kind+':'+id,representation:'physical',recipe:null,fidelity:'Aircraft installation',motion:'Stationary airframe; the engine experiment changes its internal response.'});
+ add('airframe.fuselage',heli?'Cabin & tail boom':'Fuselage','The fuselage houses occupants and equipment and connects the main structural assemblies. In a helicopter, the tail boom also supports the tail drive and tail surfaces.',base.anchor,heli?'helicopter':'airframe');
+ add('airframe.cockpit','Cockpit & cabin glazing','The flight deck gives the crew a forward view and a place to monitor and control the aircraft. Cabin windows show the occupied section of the fuselage.',heli?[-10,-2.5,0]:[-7,5,AIRFRAME_LAYOUT[m.kind].bodyZ]);
+ add('airframe.tail','Tail surfaces',heli?'The vertical fin and horizontal stabilizer contribute to stability during forward flight. The tail rotor provides the separate anti-torque and heading-control function.':'The horizontal stabilizer helps balance and stabilize pitch; the vertical fin helps stabilize yaw. Elevators and the rudder provide control about those axes.',heli?[18,-.5,0]:[26,7,AIRFRAME_LAYOUT[m.kind].bodyZ]);
+ add('airframe.landing',heli?'Landing skids':'Retracted gear doors','The landing gear supports the aircraft on the ground and transfers landing loads into the structure. The helicopter view uses skids; the fixed-wing view shows the gear stowed.',heli?[-3,-6,0]:[6,1,AIRFRAME_LAYOUT[m.kind].bodyZ]);
+ add('airframe.mounts',heli?'Engine deck & mounts':'Engine pylons & mounts','Engine mounts transfer weight, thrust, torque reactions and other loads into the airframe. A wing-mounted engine uses a pylon to connect its mount structure to the wing.',heli?[.5,-1.7,0]:[1,2.7,0]);
+ add('airframe.nacelle','Studied engine nacelle / cowling','The cowling encloses the engine and its accessories and shapes the outside airflow. '+(heli?'Separate lateral exhaust openings sit ahead of the reduction. ':'')+'Use Cutaway in Whole aircraft to open the cowling, or Engine assembly to inspect the machinery inside. The cowling is separate from the internal pressure casings.',[0,0,0]);
+ if(!heli)add('airframe.companion','Far engine · exterior context only','The far engine completes the installation view. Its internals and controls are not separately simulated; select the near engine to explore the running model.',[0,0,AIRFRAME_LAYOUT[m.kind].oppositeEngineZ]);
  return m;
 }
 export function isPhysicalNode(n){return !!n&&n.representation!=='interface';}

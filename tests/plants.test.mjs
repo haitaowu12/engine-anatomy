@@ -1,11 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DT,GEAR,plantDefaults,initialPlant,observePlant,stepPlant,createPlantRunner} from '../src/plants.js';
+import {DT,GEAR,plantDefaults,initialPlant,observePlant,stepPlant,createPlantRunner,fanThermodynamics} from '../src/plants.js';
 import {buildManifest,SOURCES} from '../src/manifest.js';
 import {trialInputs,nearGovernedEquilibrium} from '../src/lessons.js';
 const kinds=['helicopter','turboprop','turbofan'];
 const near=(a,b,tol)=>assert.ok(Math.abs(a-b)<=tol,`${a} versus ${b}; tolerance ${tol}`);
 const run=(kind,s,u,seconds,dt=DT)=>{for(let i=0;i<Math.round(seconds/dt);i++)s=stepPlant(kind,s,u,dt);return s;};
+test('turbofan: incoming momentum uses air mass only, while outgoing momentum includes fuel',()=>{
+ const initial=initialPlant('turbofan');
+ for(const fuel of [.014,.04,.065]){
+  const s={...initial,fuel},u=plantDefaults('turbofan');
+  const still=fanThermodynamics(s,{...u,airspeed:0});
+  const slow=fanThermodynamics(s,{...u,airspeed:60});
+  const fast=fanThermodynamics(s,{...u,airspeed:160});
+  near(still.coreThrust,still.gas*still.coreV,1e-9);
+  // With inlet total conditions held fixed, only incoming air momentum changes.
+  // Fuel arrives from the aircraft tank, so it adds no freestream ram-drag term.
+  near(fast.coreThrust-slow.coreThrust,-100*still.air,1e-9);
+  near((fast.coreThrust+fast.bypassThrust)-(slow.coreThrust+slow.bypassThrust),-100*still.total,1e-9);
+ }
+});
 for(const kind of kinds){
  test(`${kind}: mass/heat/work and both shaft balances close across input corners`,()=>{
   const init=initialPlant(kind);for(const demand of [.25,1])for(const fuelLimit of [.65,1])for(const ambientT of [278,318]){

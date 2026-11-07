@@ -16,7 +16,7 @@ export function fanThermodynamics(s,u){
  const coreV=Math.sqrt(Math.max(0,2*.95*P.cp*t6*(1-1.35**(-k))));
  return {air:core,gas,bypass,total,heat,pr,fanPR,lpcPR,hpcPR,tFan,t25,t3,t4,t5,t6,p3:101325*pr,p4:101325*pr*.95,
   fanW,lpcW,compressorW,gTurbineW:gas*P.cp*(t4-t5),pTurbineW:gas*P.cp*(t5-t6),
-  bypassV,coreV,bypassThrust:bypass*(bypassV-u.airspeed),coreThrust:gas*(coreV-u.airspeed)};
+  bypassV,coreV,bypassThrust:bypass*(bypassV-u.airspeed),coreThrust:gas*coreV-core*u.airspeed};
 }
 export function observePlant(kind,s,u){
  if(kind==='helicopter'){
