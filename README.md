@@ -96,7 +96,7 @@ The values and dimensions are **original synthetic educational assumptions**. Th
 
 MIT for original code/assets. Three.js's MIT notice, Colorfigures' complete MIT notice and the font licenses are bundled. Reference documents remain with their publishers; their artwork and manual passages are not copied into this product.
 
-Built by [Tony Wu](https://haitaowu12.github.io/tony-wu-home/) · [More projects](https://haitaowu12.github.io/tony-wu-home/#work).
+Built by [Tony Wu](https://tony-wu-home.web.app/) · [More projects](https://tony-wu-home.web.app/#work).
 
 ## Firebase Hosting
 
