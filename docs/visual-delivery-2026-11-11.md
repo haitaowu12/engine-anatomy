@@ -48,7 +48,4 @@ native-interface branch and Unslop light-refinement branch in Second Brain at
 - `npm run build` and `npm run check:release` passed, verifying six pages, 88 local
   dependency references, documentation parity and unique controls.
 
-Rendered layout and browser interaction review remain open: local Chromium could
-not create its process-singleton socket, and the connected browser denied page
-access. The handler tests do not establish visual acceptance. No GitHub Actions
-or deployment was run for this change.
+Chrome rendered the connected walkthrough at desktop and 390 px. Keyboard selection moved to the named stage, kept focus on its button and updated the model and step status. The walkthrough played when motion was enabled. Checking Reduce motion stopped it, and clearing the option left it ready to play. The production-handler suite also covers reading intervals and stopping when the tab is hidden. No deployment was run.
