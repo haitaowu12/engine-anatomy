@@ -79,3 +79,17 @@
 @media(max-width:550px){.workbench>.study-tabs button{font-size:13px;line-height:1.4}.scene-footer{flex-wrap:wrap}.scene-caption h2{overflow-wrap:anywhere}.camera-buttons button,.part-actions button{min-width:44px;min-height:44px}.component-browser select{max-width:100%;min-width:0}.study-switch a{min-height:44px;display:inline-flex;align-items:center}.comparison-scroll{max-width:100%}}
 
 @media(max-width:900px){.workbench[data-activity=walkthrough]>.learning-column{order:-1}.workbench[data-activity=walkthrough]>.scene-column{order:0}#mobile-trial-slot:not([hidden]){padding:12px 0 16px}.mechanism-panel{max-width:70ch}}
+
+/* Keep the lesson's named route visible beside the selected mechanism. */
+.lesson-step-list{display:grid;grid-template-columns:1fr;gap:0;margin:20px 0;border-top:1px solid var(--line)}
+.lesson-step-list button{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;text-align:left;min-height:50px;padding:10px 8px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;transition:background-color 180ms,color 180ms}
+.lesson-step-list button>span{display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--line);border-radius:50%;font:12px ui-monospace,monospace;color:var(--muted)}
+.lesson-step-list button>strong{font-size:13px;line-height:1.45;font-weight:400;overflow-wrap:anywhere}
+.lesson-step-list [aria-current=step]{background:#343129;color:var(--accent);box-shadow:inset 3px 0 var(--accent)}
+.lesson-step-list [aria-current=step]>span{background:var(--accent);color:#242326;border-color:var(--accent)}
+.lesson-step-list [aria-current=step]>strong{font-weight:600}
+.lesson-step-list button:hover{background:#35353b}
+.mechanism-controls{flex-wrap:wrap}
+.mechanism-controls [role=status]{font-size:12px;white-space:nowrap}
+@media(max-width:900px){.lesson-step-list{grid-template-columns:1fr 1fr;column-gap:12px}}
+@media(prefers-reduced-motion:reduce){.lesson-step-list button{transition:none}}
